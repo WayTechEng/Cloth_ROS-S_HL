@@ -55,8 +55,8 @@ public class VoiceCommands : MonoBehaviour
 
     public float up_travel = 0.15f;
 
-    //private Vector3 EEF_Offset = new Vector3(0, 0.16f, 0);
-    private Vector3 EEF_Offset = new Vector3(0, 0.13f, 0);
+    private Vector3 EEF_Offset = new Vector3(0, 0.16f, 0);
+    //private Vector3 EEF_Offset = new Vector3(0, 0.2f, 0);
 
     private Boolean usingGaze;
 
