@@ -112,8 +112,8 @@ namespace Obi
                     //Debug.Log(milli);
                     if (milli >= time_threshold)
                     {
-                        var VC = speech_obj.GetComponent<VoiceCommands>();
-                        VC.Execute();
+                        //var VC = speech_obj.GetComponent<VoiceCommands>();
+                        //VC.Execute();
                         Debug.Log("Executing..");
                         executing = true;
                     }

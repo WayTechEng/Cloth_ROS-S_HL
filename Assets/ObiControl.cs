@@ -45,7 +45,13 @@ public class ObiControl : MonoBehaviour
 
 	public void Fold()
     {
-		Debug.Log("setting points...");
+        var VC = Speech_obj.GetComponent<VoiceCommands>();
+        VC.ExecuteCustom();
+    }
+
+    public void Visualise()
+    {
+        Debug.Log("setting points...");
         // Set the pick and place
         actor = GetComponent<ObiActor>();
         pick = GameObject.Find("Pick");
@@ -59,7 +65,7 @@ public class ObiControl : MonoBehaviour
         VC.LockPath();
         actor.GetComponent<ObiParticlePicker>().path_locked = true;
 
-        
+
         //// "Grab" cloth when in "contact" with pick location
         //double dist = double.MaxValue;
         //while (dist >= threshold_distance)
@@ -78,7 +84,7 @@ public class ObiControl : MonoBehaviour
         //actor.GetComponent<ObiParticlePicker>().continue_grab_cloth = 1;
     }
 
-	private void Update()
+    private void Update()
 	{
 		//if (Input.GetKey(KeyCode.RightShift))
 		//{

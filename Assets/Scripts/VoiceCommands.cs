@@ -55,13 +55,13 @@ public class VoiceCommands : MonoBehaviour
 
     public float up_travel = 0.15f;
 
-    private Vector3 EEF_Offset = new Vector3(0, 0.16f, 0);
-    //private Vector3 EEF_Offset = new Vector3(0, 0.2f, 0);
+    //private Vector3 EEF_Offset = new Vector3(0, 0.16f, 0);
+    private Vector3 EEF_Offset = new Vector3(0, 0.11f, 0);
 
     private Boolean usingGaze;
 
-    // Cloth Obi actor init
     public ObiActor actor;
+
 
     void Start()
     {
@@ -77,8 +77,7 @@ public class VoiceCommands : MonoBehaviour
         // Set the default tag for all spawned setPoint prefab instances for easy removal later on.
         spherePoint.tag = "clone";
 
-        // Obi
-        actor = GetComponent<ObiActor>();
+        
     }
 
     // From Primary Pointer MRTK example, we need this to track the Primary pointer and place the pointerPos on it
@@ -172,6 +171,7 @@ public class VoiceCommands : MonoBehaviour
         {
             RosSharp.RosBridgeClient.MessageTypes.Geometry.Point position = GetGeometryPoint(point.Unity2Ros());
             goal_points.Add(new RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose(position, quaternion));
+            Debug.Log(position);
         }
         var pointsObjects = GameObject.FindGameObjectsWithTag("clone");
         foreach (var point in pointsObjects)
@@ -179,6 +179,7 @@ public class VoiceCommands : MonoBehaviour
             point.GetComponent<MeshRenderer>().material.color = Color.blue;
         }
         ROSConnector.GetComponent<PathRequest>().SendRequest(goal_points);
+        
     }
 
     // Causes Robot to begin following trajectory path planned
@@ -255,14 +256,14 @@ public class VoiceCommands : MonoBehaviour
 
     public void SetPointCustom(Vector3 pick, Vector3 end)
     {
+        // Obi
+        //actor = GetComponent<ObiActor>();
+        //ObiCloth cloth = 
+
         int path_to_go = -1;
         Transform childa, childb, childc, childd, childe, childf;
         Vector3 p1, p2, p3, p4, pu2, pu3;
 
-        //p1 = new Vector3(0.378f, -0.414f, 1.884f);
-        //p2 = new Vector3(0.378f, -0.25f, 1.884f);
-        //p3 = new Vector3(0.6f, -0.25f, 1.884f);
-        //p4 = new Vector3(0.782f, -0.414f, 1.884f);
         p1 = new Vector3(0.378f, -0.414f, 1.884f);
         p2 = new Vector3(0.48f, -0.414f, 1.884f);
         p3 = new Vector3(0.6f, -0.414f, 1.884f);
@@ -271,30 +272,6 @@ public class VoiceCommands : MonoBehaviour
         pu2 = new Vector3(0.41f, -0.3f, 1.884f);
         pu3 = new Vector3(0.78f, -0.3f, 1.884f);
 
-        //childa = Instantiate(spherePoint, p1, Quaternion.identity);
-        //childb = Instantiate(spherePoint, p2, Quaternion.identity);
-        //childc = Instantiate(spherePoint, p3, Quaternion.identity);
-        //childd = Instantiate(spherePoint, p4, Quaternion.identity);
-
-        //Vector3 v1 = ros_world_coord_frame.InverseTransformPoint(childa.position);
-        //Vector3 v2 = ros_world_coord_frame.InverseTransformPoint(childb.position);
-        //Vector3 v3 = ros_world_coord_frame.InverseTransformPoint(childc.position);
-        //Vector3 v4 = ros_world_coord_frame.InverseTransformPoint(childd.position);
-        //v1.y = -0.034f;
-        //v2.y = -0.034f;
-        //v3.y = -0.034f;
-        //v4.y = -0.034f;
-        //Debug.LogFormat("transformed position: {0}", v1.ToString("F3"));
-        //Debug.LogFormat("transformed position: {0}", v2.ToString("F3"));
-        //Debug.LogFormat("transformed position: {0}", v3.ToString("F3"));
-        //Debug.LogFormat("transformed position: {0}", v4.ToString("F3"));
-
-        //pathPoints.Add(new Vector3(-0.203f, -0.034f, 0.247f) + EEF_Offset);
-        //pathPoints.Add(new Vector3(-0.203f, -0.034f+0.25f, 0.247f) + EEF_Offset);
-        //pathPoints.Add(new Vector3(-0.01f, -0.034f+0.25f, 0.247f) + EEF_Offset);
-        //pathPoints.Add(new Vector3(0.185f, -0.034f, 0.247f) + EEF_Offset);
-        //pathPoints.Add(v1 + EEF_Offset);
-        //pathPoints.Add(v4 + EEF_Offset);
 
         if (path_to_go == -1)
         {
@@ -305,8 +282,8 @@ public class VoiceCommands : MonoBehaviour
             p4 = end;
             p1.y = -0.414f;
             p4.y = -0.414f;
-            child_pick = Instantiate(spherePoint, p1, Quaternion.identity);
-            child_place = Instantiate(spherePoint, p4, Quaternion.identity);
+            child_pick = Instantiate(spherePoint, pick, Quaternion.identity);
+            child_place = Instantiate(spherePoint, end, Quaternion.identity);
 
             // Calculate mid-way points for intermediate vectors
             Vector3 Vpe = end - pick;
@@ -438,6 +415,11 @@ public class VoiceCommands : MonoBehaviour
             pathPoints.Add(v6a + EEF_Offset);
         }
 
+    }
+
+    public void ExecuteCustom()
+    {
+        ROSConnector.GetComponent<RobotCommandPublisher>().SendCommand(RobotCommandPublisher.EXECUTE_TRIGGER);
     }
 
 

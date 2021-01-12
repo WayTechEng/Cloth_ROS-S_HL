@@ -142,3 +142,17 @@ MonoBehaviour:
       id: 0
       description: Toggle Profiler
       axisConstraint: 0
+  - localizationKey: 
+    keyword: Fold
+    keyCode: 0
+    action:
+      id: 0
+      description: Toggle Profiler
+      axisConstraint: 0
+  - localizationKey: 
+    keyword: Undo
+    keyCode: 0
+    action:
+      id: 0
+      description: Toggle Profiler
+      axisConstraint: 0

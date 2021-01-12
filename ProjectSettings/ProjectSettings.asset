@@ -590,7 +590,7 @@ PlayerSettings:
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
   metroPackageName: ClothRoboticv2
-  metroPackageVersion: 1.0.19.0
+  metroPackageVersion: 1.0.26.0
   metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: DefaultCompany
