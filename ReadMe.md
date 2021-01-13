@@ -1,7 +1,7 @@
 # Augmented Reality with Haptic Feedback and Virtual Barriers for improved HRI - Virtual Barrier system
 
 ## Introduction
-The repository contains the code used by Steven Lay and Steven Hoang for their Final Year Projects. .     
+The repository contains the code used by Steven Lay and Steven Hoang for their Final Year Projects. .        .
 
 ## Prerequisites 
 * [Unity 2019.4 LTS](https://unity.com/releases/2019-lts)
