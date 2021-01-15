@@ -47,7 +47,7 @@ namespace RosSharp.RosBridgeClient
         {
             if (trajectory_poses.Length > 0)
             {
-                Debug.Log(trajectory_poses.Length);
+                //Debug.Log(trajectory_poses.Length);
                 trajectory_points.Clear();
                 // The point received is in ROS coordinate frame, need to convert back to Unity's world frame
                 foreach (MessageTypes.Geometry.Pose pose in trajectory_poses)
@@ -55,7 +55,7 @@ namespace RosSharp.RosBridgeClient
                     trajectory_points.Add(ros_world_coord_frame.TransformPoint(GetUnityPoint(pose.position).Ros2Unity()));
                 }
                 // Set properties from LineRender
-                Debug.LogFormat("Message Received with Length {0}", trajectory_points.Count);
+                //Debug.LogFormat("Message Received with Length {0}", trajectory_points.Count);
                 LineTracer.enabled = true;
                 LineTracer.positionCount = trajectory_points.Count;
                 LineTracer.SetPositions(trajectory_points.ToArray());

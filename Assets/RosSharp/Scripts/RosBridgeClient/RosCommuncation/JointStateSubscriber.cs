@@ -14,6 +14,8 @@ limitations under the License.
 */
 
 using System.Collections.Generic;
+using System;
+using UnityEngine;
 
 /*
  * Modified by Steven Hoang 2020
@@ -38,7 +40,11 @@ namespace RosSharp.RosBridgeClient
                 {
                     int index = JointNames.IndexOf(message.name[i]);
                     if (index != -1)
+                    {
                         JointStateWriters[index].Write((float)message.position[i]);
+                        //JointStateWriters[index].Write((float)1);Z
+                        //Debug.Log((float)message.position[i]);
+                    }
                 }
             }
         }

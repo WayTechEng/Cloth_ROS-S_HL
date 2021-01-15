@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 
 /*
  * Written by Steven Hoang 2020
@@ -31,6 +32,7 @@ namespace RosSharp.RosBridgeClient
             {
                 // Publish the first message from queue
                 Publish(message_queue[0]);
+                Debug.LogFormat("Published: {0}", message_queue[0]);
                 // Then remove it
                 message_queue.RemoveAt(0);
             }

@@ -114,7 +114,7 @@ namespace Obi
                     {
                         //var VC = speech_obj.GetComponent<VoiceCommands>();
                         //VC.Execute();
-                        Debug.Log("Executing..");
+                        //Debug.Log("Executing..");
                         executing = true;
                     }
                 }

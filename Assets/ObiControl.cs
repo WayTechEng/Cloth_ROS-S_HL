@@ -59,6 +59,14 @@ public class ObiControl : MonoBehaviour
         var pickLocation = pick.transform.position;
         var endLocation = end.transform.position;
         var VC = Speech_obj.GetComponent<VoiceCommands>();
+
+        // If points alread created then clear them
+        var clones = GameObject.FindGameObjectsWithTag("clone");
+        if (clones.Length != 0)
+        {
+            VC.ClearPoints();
+        }
+
         VC.SetPointCustom(pickLocation, endLocation);
 
         // Calculate path (send to ROS)

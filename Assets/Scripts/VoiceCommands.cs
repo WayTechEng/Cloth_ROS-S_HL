@@ -171,7 +171,7 @@ public class VoiceCommands : MonoBehaviour
         {
             RosSharp.RosBridgeClient.MessageTypes.Geometry.Point position = GetGeometryPoint(point.Unity2Ros());
             goal_points.Add(new RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose(position, quaternion));
-            Debug.Log(position);
+
         }
         var pointsObjects = GameObject.FindGameObjectsWithTag("clone");
         foreach (var point in pointsObjects)
@@ -259,22 +259,43 @@ public class VoiceCommands : MonoBehaviour
         // Obi
         //actor = GetComponent<ObiActor>();
         //ObiCloth cloth = 
-
-        int path_to_go = -1;
-        Transform childa, childb, childc, childd, childe, childf;
-        Vector3 p1, p2, p3, p4, pu2, pu3;
-
+        int two_points = 1;
+        Vector3 p1, p4;
         p1 = new Vector3(0.378f, -0.414f, 1.884f);
-        p2 = new Vector3(0.48f, -0.414f, 1.884f);
-        p3 = new Vector3(0.6f, -0.414f, 1.884f);
         p4 = new Vector3(0.782f, -0.414f, 1.884f);
 
-        pu2 = new Vector3(0.41f, -0.3f, 1.884f);
-        pu3 = new Vector3(0.78f, -0.3f, 1.884f);
-
-
-        if (path_to_go == -1)
+        if (two_points == 1)
         {
+            Transform child_pick, child_place;
+
+            // Pick and place vectors
+            p1 = pick;
+            p4 = end;
+            p1.y = -0.414f;
+            p4.y = -0.414f;
+            child_pick = Instantiate(spherePoint, pick, Quaternion.identity);
+            child_place = Instantiate(spherePoint, end, Quaternion.identity);
+
+            Vector3 v_pick = ros_world_coord_frame.InverseTransformPoint(child_pick.position);
+            Vector3 v_place = ros_world_coord_frame.InverseTransformPoint(child_place.position);
+
+            pathPoints.Add(v_pick + EEF_Offset);
+            pathPoints.Add(v_place + EEF_Offset);
+
+            Debug.LogFormat("Adding point {0} at {1}", 1, v_pick.ToString("F3"));
+            Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
+        }
+        else if (two_points == 0)
+        {
+            
+            Transform childa, childb, childc, childd, childe, childf;
+            Vector3 p2, p3, pu2, pu3;
+
+            p2 = new Vector3(0.48f, -0.414f, 1.884f);
+            p3 = new Vector3(0.6f, -0.414f, 1.884f);        
+            pu2 = new Vector3(0.41f, -0.3f, 1.884f);
+            pu3 = new Vector3(0.78f, -0.3f, 1.884f);
+
             Transform child_pick, child_int1, child_int2, child_place;
 
             // Pick and place vectors
@@ -312,116 +333,12 @@ public class VoiceCommands : MonoBehaviour
             Debug.LogFormat("Adding point {0} at {1}", 3, i2.ToString("F3"));
             Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
         }
-        else if (path_to_go == 0) // single point
-        {
-            childa = Instantiate(spherePoint, p1, Quaternion.identity);
-            Vector3 v1a = ros_world_coord_frame.InverseTransformPoint(childa.position);
-            v1a.y = -0.034f;
-            Debug.LogFormat("transformed position: {0}", v1a.ToString("F3"));
-            pathPoints.Add(v1a + EEF_Offset);
-        }
-        else if (path_to_go == 1) // two flat points
-        {
-            childa = Instantiate(spherePoint, p1, Quaternion.identity);
-            childd = Instantiate(spherePoint, p4, Quaternion.identity);
-            Vector3 v1a = ros_world_coord_frame.InverseTransformPoint(childa.position);
-            Vector3 v4a = ros_world_coord_frame.InverseTransformPoint(childd.position);
-            v1a.y = -0.034f;
-            v4a.y = -0.034f;
-            Debug.LogFormat("transformed position: {0}", v1a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v4a.ToString("F3"));
-            pathPoints.Add(v1a + EEF_Offset);
-            pathPoints.Add(v4a + EEF_Offset);
-        }
-        else if (path_to_go == 2) // 4 flat points
-        {
-            childa = Instantiate(spherePoint, p1, Quaternion.identity);
-            childb = Instantiate(spherePoint, p2, Quaternion.identity);
-            childc = Instantiate(spherePoint, p3, Quaternion.identity);
-            childd = Instantiate(spherePoint, p4, Quaternion.identity);
-            Vector3 v1a = ros_world_coord_frame.InverseTransformPoint(childa.position);
-            Vector3 v2a = ros_world_coord_frame.InverseTransformPoint(childb.position);
-            Vector3 v3a = ros_world_coord_frame.InverseTransformPoint(childc.position);
-            Vector3 v4a = ros_world_coord_frame.InverseTransformPoint(childd.position);
-            v1a.y = -0.034f;
-            v2a.y = -0.034f;
-            v3a.y = -0.034f;
-            v4a.y = -0.034f;
-            Debug.LogFormat("transformed position: {0}", v1a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v2a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v3a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v4a.ToString("F3"));
-            pathPoints.Add(v1a + EEF_Offset);
-            pathPoints.Add(v2a + EEF_Offset);
-            pathPoints.Add(v3a + EEF_Offset);
-            pathPoints.Add(v4a + EEF_Offset);
-        }
-        else if (path_to_go == 3) // Flat points with up
-        {
-            childa = Instantiate(spherePoint, p1, Quaternion.identity);
-            childb = Instantiate(spherePoint, pu2, Quaternion.identity);
-            childc = Instantiate(spherePoint, pu3, Quaternion.identity);
-            childd = Instantiate(spherePoint, p4, Quaternion.identity);
-            Vector3 v1a = ros_world_coord_frame.InverseTransformPoint(childa.position);
-            Vector3 v2a = ros_world_coord_frame.InverseTransformPoint(childb.position);
-            Vector3 v3a = ros_world_coord_frame.InverseTransformPoint(childc.position);
-            Vector3 v4a = ros_world_coord_frame.InverseTransformPoint(childd.position);
-            v1a.y = -0.034f;
-            v4a.y = -0.034f;
-            Debug.LogFormat("transformed position: {0}", v1a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v2a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v3a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v4a.ToString("F3"));
-            pathPoints.Add(v1a + EEF_Offset);
-            pathPoints.Add(v2a + EEF_Offset);
-            pathPoints.Add(v3a + EEF_Offset);
-            pathPoints.Add(v4a + EEF_Offset);
-        }
-        else if (path_to_go == 4) // straight up then flat then down - 6 points
-        {
-            Vector3 f1, f2, u1, u2, point1, point2;
-            point1 = new Vector3(0.378f, -0.414f, 1.884f);
-            u1 = new Vector3(0.4f, -0.3f, 1.884f);
-            f1 = new Vector3(0.48f, -0.3f, 1.884f);
-            f2 = new Vector3(0.63f, -0.3f, 1.884f);
-            u2 = new Vector3(0.73f, -0.3f, 1.884f);
-            point2 = new Vector3(0.782f, -0.414f, 1.884f);
-
-            childa = Instantiate(spherePoint, point1, Quaternion.identity);
-            childb = Instantiate(spherePoint, u1, Quaternion.identity);
-            childc = Instantiate(spherePoint, f1, Quaternion.identity);
-            childd = Instantiate(spherePoint, f2, Quaternion.identity);
-            childe = Instantiate(spherePoint, u2, Quaternion.identity);
-            childf = Instantiate(spherePoint, point2, Quaternion.identity);
-            Vector3 v1a = ros_world_coord_frame.InverseTransformPoint(childa.position);
-            Vector3 v2a = ros_world_coord_frame.InverseTransformPoint(childb.position);
-            Vector3 v3a = ros_world_coord_frame.InverseTransformPoint(childc.position);
-            Vector3 v4a = ros_world_coord_frame.InverseTransformPoint(childd.position);
-            Vector3 v5a = ros_world_coord_frame.InverseTransformPoint(childe.position);
-            Vector3 v6a = ros_world_coord_frame.InverseTransformPoint(childf.position);
-            v1a.y = -0.034f;
-            v6a.y = -0.034f;
-            Debug.LogFormat("transformed position: {0}", v1a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v2a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v3a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v4a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v5a.ToString("F3"));
-            Debug.LogFormat("transformed position: {0}", v6a.ToString("F3"));
-            pathPoints.Add(v1a + EEF_Offset);
-            pathPoints.Add(v2a + EEF_Offset);
-            pathPoints.Add(v3a + EEF_Offset);
-            pathPoints.Add(v4a + EEF_Offset);
-            pathPoints.Add(v5a + EEF_Offset);
-            pathPoints.Add(v6a + EEF_Offset);
-        }
-
     }
 
     public void ExecuteCustom()
     {
         ROSConnector.GetComponent<RobotCommandPublisher>().SendCommand(RobotCommandPublisher.EXECUTE_TRIGGER);
     }
-
 
     public void ClearLastPoint()
     {
