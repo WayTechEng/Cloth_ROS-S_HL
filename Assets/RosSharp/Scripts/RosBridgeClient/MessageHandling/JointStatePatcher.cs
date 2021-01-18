@@ -47,11 +47,13 @@ namespace RosSharp.RosBridgeClient
 
         public void SetSubscribeJointStates(bool subscribe)
         {
+            Debug.Log("Here");
             if (subscribe)
             {
                 JointStateSubscriber jointStateSubscriber = transform.AddComponentIfNotExists<JointStateSubscriber>();
                 jointStateSubscriber.JointStateWriters = new List<JointStateWriter>();
                 jointStateSubscriber.JointNames = new List<string>();
+                Debug.Log("setting joint states");
 
                 foreach (UrdfJoint urdfJoint in UrdfRobot.GetComponentsInChildren<UrdfJoint>()) {
                     if (urdfJoint.JointType != UrdfJoint.JointTypes.Fixed)
