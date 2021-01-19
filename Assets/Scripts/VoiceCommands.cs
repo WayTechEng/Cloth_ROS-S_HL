@@ -182,6 +182,27 @@ public class VoiceCommands : MonoBehaviour
         
     }
 
+    public void LockPathKinect()
+    {
+        List<RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose> goal_points = new List<RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose>();
+        // Hardcoded orientation of the EEF, gonna look for a better way to configure this
+        RosSharp.RosBridgeClient.MessageTypes.Geometry.Quaternion quaternion = new RosSharp.RosBridgeClient.MessageTypes.Geometry.Quaternion
+                                                                                                            (0.923956f, -0.382499f, 0, 0);
+        // Construct array of goalpoints
+        foreach (var point in pathPoints)
+        {
+            RosSharp.RosBridgeClient.MessageTypes.Geometry.Point position = GetGeometryPoint(point);
+            goal_points.Add(new RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose(position, quaternion));
+        }
+        var pointsObjects = GameObject.FindGameObjectsWithTag("clone");
+        foreach (var point in pointsObjects)
+        {
+            point.GetComponent<MeshRenderer>().material.color = Color.blue;
+        }
+        ROSConnector.GetComponent<PathRequest>().SendRequest(goal_points);
+
+    }
+
     // Causes Robot to begin following trajectory path planned
     public void Execute()
     {
@@ -269,7 +290,7 @@ public class VoiceCommands : MonoBehaviour
             Transform child_pick, child_place;
 
             // Pick and place vectors
-            p1 = pick;
+            p1 = pick; 
             p4 = end;
             p1.y = -0.414f;
             p4.y = -0.414f;
@@ -334,6 +355,34 @@ public class VoiceCommands : MonoBehaviour
             Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
         }
     }
+
+    public void SetPointToKinect(Vector3 pick, Vector3 end, Vector3 pick_norm, Vector3 end_norm)
+    {
+        Vector3 p1, p4;
+        Transform child_pick, child_place;
+
+        // Pick and place vectors
+        p1 = pick;
+        p4 = end;
+        p1.y = -0.414f;
+        p4.y = -0.414f;
+        child_pick = Instantiate(spherePoint, pick, Quaternion.identity);
+        child_place = Instantiate(spherePoint, end, Quaternion.identity);
+
+        //Vector3 v_pick = ros_world_coord_frame.InverseTransformPoint(child_pick.position);
+        //Vector3 v_place = ros_world_coord_frame.InverseTransformPoint(child_place.position);
+        Vector3 v_pick_norm = new Vector3(pick_norm.x, pick_norm.z, pick_norm.y);
+        Vector3 v_place_norm = new Vector3(end_norm.x, end_norm.z, end_norm.y);
+        pathPoints.Add(v_pick_norm);
+        pathPoints.Add(v_place_norm);
+
+        //pathPoints.Add(pick_norm);
+        //pathPoints.Add(end_norm);
+
+        Debug.LogFormat("Adding point {0} at {1}", 1, v_pick_norm.ToString("F3"));
+        Debug.LogFormat("Adding point {0} at {1}", 4, v_place_norm.ToString("F3"));
+    }
+
 
     public void ExecuteCustom()
     {

@@ -50,7 +50,7 @@ namespace Obi
         private float movement = 0;
         private int caseswitch = 0;
         private int dt = 35;
-        double threshold_distance = 0.075f;
+        double threshold_distance = 0.010f;
 
         private float[] arrx = new float[50];
         private float[] arry = new float[50];
@@ -100,25 +100,7 @@ namespace Obi
             {
                 pickLocation = pick_obj.transform.position;
                 endLocation = end_obj.transform.position;
-                // Execute path
-                if (!path_locked)
-                {
-                    startTime = DateTime.Now;
-                }
-                if (path_locked && !executing)
-                {
-                    //Debug.LogFormat("Path_locked: {0}, \n executing: {1}", path_locked, executing);
-                    double milli = (DateTime.Now - startTime).TotalMilliseconds;
-                    //Debug.Log(milli);
-                    if (milli >= time_threshold)
-                    {
-                        //var VC = speech_obj.GetComponent<VoiceCommands>();
-                        //VC.Execute();
-                        //Debug.Log("Executing..");
-                        executing = true;
-                    }
-                }
-                // "Grab" cloth when in "contact" with pick location
+
                 if (executing)
                 {
                     Vector3 delta_start = last_EE_pos - pickLocation;
@@ -132,7 +114,6 @@ namespace Obi
                         Debug.Log("Grab the cloth!");
                     }
                 }
-
 
                 // Attach cloth to EE                
                 if (init_grab_cloth)

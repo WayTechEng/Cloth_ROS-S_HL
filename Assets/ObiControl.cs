@@ -10,7 +10,8 @@ public class ObiControl : MonoBehaviour
 	GameObject pick;
 	GameObject end;
 	public GameObject Speech_obj;
-	Vector3 pick_orig_pos;
+    public ObiSolver solver;
+    Vector3 pick_orig_pos;
 	Vector3 end_orig_pos;
 	double threshold_distance = 0.01f;
     private DateTime startTime, tempTime;
@@ -56,9 +57,93 @@ public class ObiControl : MonoBehaviour
         actor = GetComponent<ObiActor>();
         pick = GameObject.Find("Pick");
         end = GameObject.Find("End");
+
         var pickLocation = pick.transform.position;
         var endLocation = end.transform.position;
         var VC = Speech_obj.GetComponent<VoiceCommands>();
+
+        // Transform object to position relative to cloth frame
+        //Debug.LogFormat("Pick position in world frame:\n{0}\n", pickLocation.ToString("F3"));
+        var pickLocationCloth = actor.transform.InverseTransformPoint(pickLocation);
+        var placeLocationCloth = actor.transform.InverseTransformPoint(endLocation);
+        Debug.LogFormat("Pick position W.R.T. Cloth:\n{0}\n", pickLocationCloth.ToString("F3"));
+        Debug.LogFormat("Place position W.R.T. Cloth:\n{0}\n", placeLocationCloth.ToString("F3"));
+
+        //////////////////////////////
+        /// Need to normalise position WRT cloth frame to pass to Kinect program
+        //////////////////////////////
+        // Find the relative size of of the cloth..
+        Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
+        float minx = float.MaxValue;
+        float minz = float.MaxValue;
+        float maxx = float.MinValue;
+        float maxz = float.MinValue;
+        for (int i = 0; i < solver.renderablePositions.count; ++i)
+        {
+            Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
+            float x = worldPos.x;
+            float z  = worldPos.z;
+
+            if (x > maxx)
+            {
+                maxx = x;
+            }
+            if(z > maxz)
+            {
+                maxz = z;
+            }
+            if (x < minx)
+            {
+                minx = x;
+            }
+            if (z < minz)
+            {
+                minz = z;
+            }
+        }
+        float size_x = Math.Abs(maxx - minx);
+        float size_z = Math.Abs(maxz - minz);
+        Debug.LogFormat("SIZE OF X x Z:   {0}  x {1} ", size_x.ToString("F3"), size_z.ToString("F3"));
+
+        // Check for pick/place bounding conditions
+        if (pickLocationCloth.x < -size_x / 2) pickLocationCloth.x = -size_x / 2;
+        if (pickLocationCloth.x > size_x / 2) pickLocationCloth.x = size_x / 2;
+        if (pickLocationCloth.z < -size_z / 2) pickLocationCloth.z = -size_z / 2;
+        if (pickLocationCloth.z > size_z / 2) pickLocationCloth.z = size_z / 2;
+        if (placeLocationCloth.x < -size_x / 2) placeLocationCloth.x = -size_x / 2;
+        if (placeLocationCloth.x > size_x / 2)  placeLocationCloth.x = size_x / 2;
+        if (placeLocationCloth.z < -size_z / 2) placeLocationCloth.z = -size_z / 2;
+        if (placeLocationCloth.z > size_z / 2)  placeLocationCloth.z = size_z / 2;
+
+        Debug.LogFormat("Pick position BOUNDING:\n{0}\n", pickLocationCloth.ToString("F3"));
+        Debug.LogFormat("Place position BOUNDING:\n{0}\n", placeLocationCloth.ToString("F3"));
+
+
+
+        // Normalise pick and place positions in the cloths frame
+        // Arbitrarily set the zero position at x = -(size/2) , z = +(size/2) ..... Top left corner when looking from game view
+        // It might be better in future to change this when the position of the kinect sensor is confirmed
+        // While we are here, may as well normalise to x and y as well...
+
+        //z = balll.z + size_z/2
+
+        Vector3 pick_norm_cloth = new Vector3(0, 0, 0);
+        Vector3 place_norm_cloth = new Vector3(0, 0, 0);
+        pick_norm_cloth.x = pickLocationCloth.x + size_x/2;
+        pick_norm_cloth.z = -pickLocationCloth.z + size_z/2;
+        place_norm_cloth.x = placeLocationCloth.x + size_x/2;
+        place_norm_cloth.z = -placeLocationCloth.z + size_z/2;
+
+        Debug.LogFormat("Pick..... X x Z:   {0}  x {1} ", pick_norm_cloth.x.ToString("F3"), pick_norm_cloth.z.ToString("F3"));
+        Debug.LogFormat("Place..... X x Z:   {0}  x {1} ", place_norm_cloth.x.ToString("F3"), place_norm_cloth.z.ToString("F3"));
+
+        pick_norm_cloth.x = pick_norm_cloth.x / size_x;
+        pick_norm_cloth.z = pick_norm_cloth.z / size_z;
+        place_norm_cloth.x = place_norm_cloth.x / size_x;
+        place_norm_cloth.z = place_norm_cloth.z / size_z;
+
+        Debug.LogFormat("Pick NORM..... X x Z:   {0}  x {1} ", pick_norm_cloth.x.ToString("F3"), pick_norm_cloth.z.ToString("F3"));
+        Debug.LogFormat("Place NORM..... X x Z:   {0}  x {1} ", place_norm_cloth.x.ToString("F3"), place_norm_cloth.z.ToString("F3"));
 
         // If points alread created then clear them
         var clones = GameObject.FindGameObjectsWithTag("clone");
@@ -67,29 +152,14 @@ public class ObiControl : MonoBehaviour
             VC.ClearPoints();
         }
 
-        VC.SetPointCustom(pickLocation, endLocation);
+        //VC.SetPointCustom(pickLocation, endLocation);
+        VC.SetPointToKinect(pickLocation, endLocation, pick_norm_cloth, place_norm_cloth);
 
         // Calculate path (send to ROS)
-        VC.LockPath();
-        actor.GetComponent<ObiParticlePicker>().path_locked = true;
-
-
-        //// "Grab" cloth when in "contact" with pick location
-        //double dist = double.MaxValue;
-        //while (dist >= threshold_distance)
-        //{
-        //	Vector3 EE_pos = actor.GetComponent<ObiParticlePicker>().EE.transform.position;
-        //	Vector3 delta = EE_pos - pickLocation;
-        //	dist = delta.magnitude;
-        //	Debug.Log("Stuck in loop......");
-        //	if(Input.GetKey(KeyCode.Escape))
-        //          {
-        //		dist = 0;
-        //          }
-        //}
-        //// Start the grab
-        //actor.GetComponent<ObiParticlePicker>().init_grab_cloth = 1;
-        //actor.GetComponent<ObiParticlePicker>().continue_grab_cloth = 1;
+        //VC.LockPath();
+        VC.LockPathKinect();
+        //actor.GetComponent<ObiParticlePicker>().path_locked = true;
+        actor.GetComponent<ObiParticlePicker>().executing = true;
     }
 
     private void Update()
