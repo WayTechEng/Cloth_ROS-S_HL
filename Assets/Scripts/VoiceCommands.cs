@@ -182,6 +182,28 @@ public class VoiceCommands : MonoBehaviour
         
     }
 
+    public void LockPathMoveit()
+    {
+        List<RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose> goal_points = new List<RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose>();
+        // Hardcoded orientation of the EEF, gonna look for a better way to configure this
+        RosSharp.RosBridgeClient.MessageTypes.Geometry.Quaternion quaternion = new RosSharp.RosBridgeClient.MessageTypes.Geometry.Quaternion
+                                                                                                            (0.923956f, -0.382499f, 0, 0);
+        // Construct array of goalpoints
+        foreach (var point in pathPoints)
+        {
+            RosSharp.RosBridgeClient.MessageTypes.Geometry.Point position = GetGeometryPoint(point.Unity2Ros());
+            goal_points.Add(new RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose(position, quaternion));
+
+        }
+        var pointsObjects = GameObject.FindGameObjectsWithTag("clone");
+        foreach (var point in pointsObjects)
+        {
+            point.GetComponent<MeshRenderer>().material.color = Color.blue;
+        }
+        ROSConnector.GetComponent<PathRequest2>().SendRequest(goal_points);
+
+    }
+
     public void LockPathKinect()
     {
         List<RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose> goal_points = new List<RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose>();

@@ -50,6 +50,31 @@ public class ObiControl : MonoBehaviour
         VC.ExecuteCustom();
     }
 
+    public void VisualiseMoveit()
+    {
+        Debug.Log("setting points...");
+        // Set the pick and place
+        actor = GetComponent<ObiActor>();
+        pick = GameObject.Find("Pick");
+        end = GameObject.Find("End");
+
+        var pickLocation = pick.transform.position;
+        var endLocation = end.transform.position;
+        var VC = Speech_obj.GetComponent<VoiceCommands>();
+
+        // If points alread created then clear them
+        var clones = GameObject.FindGameObjectsWithTag("clone");
+        if (clones.Length != 0)
+        {
+            VC.ClearPoints();
+        }
+        // Send message to unity first!
+        VC.SetPointCustom(pickLocation, endLocation);
+        VC.LockPathMoveit();
+        actor.GetComponent<ObiParticlePicker>().executing = true;
+    }
+
+
     public void Visualise()
     {
         Debug.Log("setting points...");
@@ -130,9 +155,11 @@ public class ObiControl : MonoBehaviour
         Vector3 pick_norm_cloth = new Vector3(0, 0, 0);
         Vector3 place_norm_cloth = new Vector3(0, 0, 0);
         pick_norm_cloth.x = pickLocationCloth.x + size_x/2;
-        pick_norm_cloth.z = -pickLocationCloth.z + size_z/2;
+        //pick_norm_cloth.z = -pickLocationCloth.z + size_z/2;
+        pick_norm_cloth.z = pickLocationCloth.z + size_z/2;
         place_norm_cloth.x = placeLocationCloth.x + size_x/2;
-        place_norm_cloth.z = -placeLocationCloth.z + size_z/2;
+        //place_norm_cloth.z = -placeLocationCloth.z + size_z/2;
+        place_norm_cloth.z = placeLocationCloth.z + size_z/2;
 
         Debug.LogFormat("Pick..... X x Z:   {0}  x {1} ", pick_norm_cloth.x.ToString("F3"), pick_norm_cloth.z.ToString("F3"));
         Debug.LogFormat("Place..... X x Z:   {0}  x {1} ", place_norm_cloth.x.ToString("F3"), place_norm_cloth.z.ToString("F3"));
@@ -159,7 +186,7 @@ public class ObiControl : MonoBehaviour
         //VC.LockPath();
         VC.LockPathKinect();
         //actor.GetComponent<ObiParticlePicker>().path_locked = true;
-        actor.GetComponent<ObiParticlePicker>().executing = true;
+        
     }
 
     private void Update()

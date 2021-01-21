@@ -51,6 +51,7 @@ namespace Obi
         private int caseswitch = 0;
         private int dt = 35;
         double threshold_distance = 0.010f;
+        double threshold_distance_drop = 0.010f;
 
         private float[] arrx = new float[50];
         private float[] arry = new float[50];
@@ -177,7 +178,8 @@ namespace Obi
                     }
                     // Release:
                     Vector3 delta_end = EE_pos - endLocation;
-                    if (delta_end.magnitude <= threshold_distance)
+                    Vector2 delta_end_xz = new Vector2(delta_end.x, delta_end.z);
+                    if (delta_end_xz.magnitude <= threshold_distance_drop)
                     {
                         continue_grab_cloth = false;
                         executing = false;
