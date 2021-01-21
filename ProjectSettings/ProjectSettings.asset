@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: Ben_PC
-  productName: Cloth_1
+  productName: Cloth_ref
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -589,14 +589,14 @@ PlayerSettings:
   apiCompatibilityLevelPerPlatform: {}
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: Cloth1
-  metroPackageVersion: 1.0.31.0
+  metroPackageName: Clothref
+  metroPackageVersion: 1.0.32.0
   metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: DefaultCompany
   metroCertificateIssuer: DefaultCompany
   metroCertificateNotAfter: 006c85e97e72d701
-  metroApplicationDescription: Cloth_1
+  metroApplicationDescription: Cloth_ref
   wsaImages: {}
   metroTileShortName: TestProject
   metroTileShowName: 0
