@@ -60,14 +60,14 @@ MonoBehaviour:
       axisConstraint: 0
   - localizationKey: 
     keyword: Lock Path
-    keyCode: 103
+    keyCode: 0
     action:
       id: 0
       description: Toggle Profiler
       axisConstraint: 0
   - localizationKey: 
     keyword: Execute
-    keyCode: 104
+    keyCode: 0
     action:
       id: 0
       description: Toggle Profiler
@@ -95,7 +95,7 @@ MonoBehaviour:
       axisConstraint: 0
   - localizationKey: 
     keyword: Set Point
-    keyCode: 102
+    keyCode: 0
     action:
       id: 0
       description: Toggle Profiler
@@ -144,14 +144,21 @@ MonoBehaviour:
       axisConstraint: 0
   - localizationKey: 
     keyword: Fold
-    keyCode: 0
+    keyCode: 104
     action:
       id: 0
       description: Toggle Profiler
       axisConstraint: 0
   - localizationKey: 
     keyword: Undo
-    keyCode: 0
+    keyCode: 103
+    action:
+      id: 0
+      description: Toggle Profiler
+      axisConstraint: 0
+  - localizationKey: 
+    keyword: Simulate
+    keyCode: 102
     action:
       id: 0
       description: Toggle Profiler

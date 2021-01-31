@@ -150,16 +150,26 @@ public class ObiControl : MonoBehaviour
         // It might be better in future to change this when the position of the kinect sensor is confirmed
         // While we are here, may as well normalise to x and y as well...
 
-        //z = balll.z + size_z/2
-
+        // We now want the zero position at x = +(size/2), z = +(size/2) ...... Top right corner when looking from game corner
+        // We also want x pointing in the negative z, and y pointing in the negative x ... to match the cameras frame!
         Vector3 pick_norm_cloth = new Vector3(0, 0, 0);
         Vector3 place_norm_cloth = new Vector3(0, 0, 0);
-        pick_norm_cloth.x = pickLocationCloth.x + size_x/2;
-        //pick_norm_cloth.z = -pickLocationCloth.z + size_z/2;
-        pick_norm_cloth.z = pickLocationCloth.z + size_z/2;
-        place_norm_cloth.x = placeLocationCloth.x + size_x/2;
-        //place_norm_cloth.z = -placeLocationCloth.z + size_z/2;
-        place_norm_cloth.z = placeLocationCloth.z + size_z/2;
+
+        //////// Zero at bottom left corner (Game view)
+        //pick_norm_cloth.x = pickLocationCloth.x + size_x/2;
+        ////pick_norm_cloth.z = -pickLocationCloth.z + size_z/2;
+        //pick_norm_cloth.z = pickLocationCloth.z + size_z/2;
+        //place_norm_cloth.x = placeLocationCloth.x + size_x/2;
+        ////place_norm_cloth.z = -placeLocationCloth.z + size_z/2;
+        //place_norm_cloth.z = placeLocationCloth.z + size_z/2;
+
+        ///////// Zero at top right corner (game view)
+        pick_norm_cloth.x = -pickLocationCloth.x + size_x / 2;
+        pick_norm_cloth.z = -pickLocationCloth.z + size_z / 2;
+        //pick_norm_cloth.z = pickLocationCloth.z + size_z / 2;
+        place_norm_cloth.x = -placeLocationCloth.x + size_x / 2;
+        place_norm_cloth.z = -placeLocationCloth.z + size_z / 2;
+        //place_norm_cloth.z = placeLocationCloth.z + size_z / 2;
 
         Debug.LogFormat("Pick..... X x Z:   {0}  x {1} ", pick_norm_cloth.x.ToString("F3"), pick_norm_cloth.z.ToString("F3"));
         Debug.LogFormat("Place..... X x Z:   {0}  x {1} ", place_norm_cloth.x.ToString("F3"), place_norm_cloth.z.ToString("F3"));
