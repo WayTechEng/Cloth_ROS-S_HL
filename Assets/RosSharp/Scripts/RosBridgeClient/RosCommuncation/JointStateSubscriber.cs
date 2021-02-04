@@ -34,7 +34,7 @@ namespace RosSharp.RosBridgeClient
         protected override void ReceiveMessage(MessageTypes.Sensor.JointState message)
         {
             // If not in Preview mode, reflects the real joint states, otherwise, let the other JointStateWriter does
-            Debug.Log("Setting joint states");
+            //Debug.Log("Setting joint states");
             if (!previewMode)
             {
                 for (int i = 0; i < message.name.Length; i++)
@@ -45,7 +45,7 @@ namespace RosSharp.RosBridgeClient
                     {
                         JointStateWriters[index].Write((float)message.position[i]);
                         //JointStateWriters[index].Write((float)1);
-                        Debug.Log((float)message.position[i]);
+                        //Debug.Log((float)message.position[i]);
                     }
                 }
             }

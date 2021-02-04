@@ -62,6 +62,8 @@ namespace Obi
 
         private Vector3 EE_pos;
         private Vector3 last_EE_pos = Vector3.zero;
+        private Vector3 EE_pos_last = Vector3.zero;
+
 
         public bool path_locked = false;
         public bool executing = false;
@@ -83,6 +85,13 @@ namespace Obi
             last_EE_pos = EE.transform.position;
             pick_obj = GameObject.Find("Pick");
             end_obj = GameObject.Find("End");
+            Debug.Log("INIT");
+            Debug.Log("INIT");
+            Debug.Log("INIT");
+            Debug.Log("INIT");
+            Debug.Log("INIT");
+            Debug.Log("INIT");
+            Debug.Log("INIT");
         }
 
         void LateUpdate()
@@ -181,15 +190,21 @@ namespace Obi
                     Vector2 delta_end_xz = new Vector2(delta_end.x, delta_end.z);
                     if (delta_end_xz.magnitude <= threshold_distance_drop)
                     {
-                        continue_grab_cloth = false;
-                        executing = false;
-
-                        if (OnParticleReleased != null)
+                        double dd = EE_pos.y - EE_pos_last.y;
+                        Debug.Log(dd);
+                        if (dd > 0)
                         {
-                            OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
+                            continue_grab_cloth = false;
+                            executing = false;
+
+                            if (OnParticleReleased != null)
+                            {
+                                OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
+                            }
+                            pickedParticleIndex = -1;
                         }
-                        pickedParticleIndex = -1;
                     }
+                    EE_pos_last = EE_pos;
                 } // End drag event.
             }// End Solver check.
         }

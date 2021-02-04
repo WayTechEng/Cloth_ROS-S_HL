@@ -1,6 +1,8 @@
 ﻿using System;
 using UnityEngine;
 using Obi;
+using RosSharp.RosBridgeClient;
+using RosSharp;
 
 
 [RequireComponent(typeof(ObiActor))]
@@ -9,7 +11,8 @@ public class ObiControl : MonoBehaviour
 	ObiActor actor;
 	GameObject pick;
 	GameObject end;
-	public GameObject Speech_obj;
+    public GameObject robotFrame; 
+    public GameObject Speech_obj;
     public ObiSolver solver;
     Vector3 pick_orig_pos;
 	Vector3 end_orig_pos;
@@ -17,10 +20,39 @@ public class ObiControl : MonoBehaviour
     private DateTime startTime, tempTime;
     double time_threshold = 2000;
 
-    public void Init()
+    // ROS Connector to communicate with ROS
+    private GameObject ROSConnector;
+
+    private void Start()
     {
+        ROSConnector = GameObject.Find("ROS Connector");
+        pick = GameObject.Find("Pick");
+        end = GameObject.Find("End");
+
+        Get_cloth_state();
         pick_orig_pos = pick.transform.position;
         end_orig_pos = end.transform.position;
+    }
+
+    public void Get_cloth_state()
+    {
+        ROSConnector.GetComponent<RobotCommandPublisher>().SendCommand(RobotCommandPublisher.GET_CLOTH_STATE);
+        Debug.Log("Requested to get cloth state");
+    }    
+
+    public void Set_cloth_state()
+    {
+        var pos = ROSConnector.GetComponent<ClothPoseSubscriber>().position;
+        var ori = ROSConnector.GetComponent<ClothPoseSubscriber>().orientation;
+        //Debug.Log(pos);
+
+        var current_solver_position_wrt_world = solver.transform.position;
+
+        var new_solver_position_wrt_world = robotFrame.transform.TransformPoint(pos);
+        new_solver_position_wrt_world.y = current_solver_position_wrt_world.y;
+        //new_solver_position_wrt_world.z = current_solver_position_wrt_world.z;
+
+        solver.transform.SetPositionAndRotation(new_solver_position_wrt_world, ori);
     }
 
     public void Reset_all()
@@ -55,8 +87,7 @@ public class ObiControl : MonoBehaviour
         Debug.Log("setting points...");
         // Set the pick and place
         actor = GetComponent<ObiActor>();
-        pick = GameObject.Find("Pick");
-        end = GameObject.Find("End");
+        
 
         var pickLocation = pick.transform.position;
         var endLocation = end.transform.position;
@@ -201,10 +232,11 @@ public class ObiControl : MonoBehaviour
 
     private void Update()
 	{
-		//if (Input.GetKey(KeyCode.RightShift))
-		//{
-		//	Reset_all();
-		//}
-		int a;
+        int count = ROSConnector.GetComponent<ClothPoseSubscriber>().counter;
+        if (count > 0)
+        {
+            Set_cloth_state();
+        }
+
 	}
 }

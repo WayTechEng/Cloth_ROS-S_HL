@@ -144,14 +144,14 @@ MonoBehaviour:
       axisConstraint: 0
   - localizationKey: 
     keyword: Fold
-    keyCode: 104
+    keyCode: 103
     action:
       id: 0
       description: Toggle Profiler
       axisConstraint: 0
   - localizationKey: 
     keyword: Undo
-    keyCode: 103
+    keyCode: 104
     action:
       id: 0
       description: Toggle Profiler
@@ -159,6 +159,20 @@ MonoBehaviour:
   - localizationKey: 
     keyword: Simulate
     keyCode: 102
+    action:
+      id: 0
+      description: Toggle Profiler
+      axisConstraint: 0
+  - localizationKey: 
+    keyword: DetectCloth
+    keyCode: 112
+    action:
+      id: 0
+      description: Toggle Profiler
+      axisConstraint: 0
+  - localizationKey: 
+    keyword: GetClothState
+    keyCode: 122
     action:
       id: 0
       description: Toggle Profiler
