@@ -33,20 +33,20 @@ namespace RosSharp.RosBridgeClient
             orientation.z = tmp_orientation.z;
             orientation.w = tmp_orientation.w;
             psuedo_counter++;
-            if(psuedo_counter < 10)
+            if(psuedo_counter < 5)
             {
                 counter++;
             }
             else
             {
-                psuedo_counter = 0;
+                //psuedo_counter = 0;
                 counter = 0;
             }
 
-            //if(psuedo_counter >= 10)
-            //{
-            //    psuedo_counter = 0;
-            //}
+            if (psuedo_counter == 10)
+            {
+                psuedo_counter = 0;
+            }
             Debug.Log(psuedo_counter);
             Debug.Log(counter);
             

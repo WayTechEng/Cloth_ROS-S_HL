@@ -233,10 +233,10 @@ public class ObiControl : MonoBehaviour
     private void Update()
 	{
         int count = ROSConnector.GetComponent<ClothPoseSubscriber>().counter;
-        if (count > 0)
-        {
-            Set_cloth_state();
-        }
+        //if (count > 0)
+        //{
+        //    Set_cloth_state();
+        //}
 
 	}
 }
