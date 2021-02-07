@@ -44,15 +44,16 @@ public class ObiControl : MonoBehaviour
     {
         var pos = ROSConnector.GetComponent<ClothPoseSubscriber>().position;
         var ori = ROSConnector.GetComponent<ClothPoseSubscriber>().orientation;
-        //Debug.Log(pos);
+        Debug.Log(pos);
 
         var current_solver_position_wrt_world = solver.transform.position;
+        var current_solver_orientation_wrt_world = solver.transform.rotation;
 
         var new_solver_position_wrt_world = robotFrame.transform.TransformPoint(pos);
         new_solver_position_wrt_world.y = current_solver_position_wrt_world.y;
         //new_solver_position_wrt_world.z = current_solver_position_wrt_world.z;
 
-        solver.transform.SetPositionAndRotation(new_solver_position_wrt_world, ori);
+        solver.transform.SetPositionAndRotation(new_solver_position_wrt_world, current_solver_orientation_wrt_world);
     }
 
     public void Reset_all()
@@ -164,12 +165,12 @@ public class ObiControl : MonoBehaviour
         // Check for pick/place bounding conditions
         if (pickLocationCloth.x < -size_x / 2) pickLocationCloth.x = -size_x / 2;
         if (pickLocationCloth.x > size_x / 2) pickLocationCloth.x = size_x / 2;
-        if (pickLocationCloth.z < -size_z / 2) pickLocationCloth.z = -size_z / 2;
-        if (pickLocationCloth.z > size_z / 2) pickLocationCloth.z = size_z / 2;
+        if (pickLocationCloth.y < -size_z / 2) pickLocationCloth.y = -size_z / 2;
+        if (pickLocationCloth.y > size_z / 2) pickLocationCloth.y = size_z / 2;
         if (placeLocationCloth.x < -size_x / 2) placeLocationCloth.x = -size_x / 2;
         if (placeLocationCloth.x > size_x / 2)  placeLocationCloth.x = size_x / 2;
-        if (placeLocationCloth.z < -size_z / 2) placeLocationCloth.z = -size_z / 2;
-        if (placeLocationCloth.z > size_z / 2)  placeLocationCloth.z = size_z / 2;
+        if (placeLocationCloth.y < -size_z / 2) placeLocationCloth.y = -size_z / 2;
+        if (placeLocationCloth.y > size_z / 2)  placeLocationCloth.y = size_z / 2;
 
         Debug.LogFormat("Pick position BOUNDING:\n{0}\n", pickLocationCloth.ToString("F3"));
         Debug.LogFormat("Place position BOUNDING:\n{0}\n", placeLocationCloth.ToString("F3"));
@@ -196,11 +197,11 @@ public class ObiControl : MonoBehaviour
 
         ///////// Zero at top right corner (game view)
         pick_norm_cloth.x = -pickLocationCloth.x + size_x / 2;
-        pick_norm_cloth.z = -pickLocationCloth.z + size_z / 2;
-        //pick_norm_cloth.z = pickLocationCloth.z + size_z / 2;
+        //pick_norm_cloth.z = -pickLocationCloth.y + size_z / 2;
+        pick_norm_cloth.z = pickLocationCloth.y + size_z / 2;
         place_norm_cloth.x = -placeLocationCloth.x + size_x / 2;
-        place_norm_cloth.z = -placeLocationCloth.z + size_z / 2;
-        //place_norm_cloth.z = placeLocationCloth.z + size_z / 2;
+        //place_norm_cloth.z = -placeLocationCloth.y + size_z / 2;
+        place_norm_cloth.z = placeLocationCloth.y + size_z / 2;
 
         Debug.LogFormat("Pick..... X x Z:   {0}  x {1} ", pick_norm_cloth.x.ToString("F3"), pick_norm_cloth.z.ToString("F3"));
         Debug.LogFormat("Place..... X x Z:   {0}  x {1} ", place_norm_cloth.x.ToString("F3"), place_norm_cloth.z.ToString("F3"));
@@ -233,10 +234,10 @@ public class ObiControl : MonoBehaviour
     private void Update()
 	{
         int count = ROSConnector.GetComponent<ClothPoseSubscriber>().counter;
-        //if (count > 0)
-        //{
-        //    Set_cloth_state();
-        //}
+        if (count > 0)
+        {
+            Set_cloth_state();
+        }
 
 	}
 }
