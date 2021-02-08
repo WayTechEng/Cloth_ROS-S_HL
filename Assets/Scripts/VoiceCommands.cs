@@ -296,86 +296,27 @@ public class VoiceCommands : MonoBehaviour
         Debug.LogFormat("Adding point {0} at {1}", pathPoints.Count, ros_world_coord_frame.InverseTransformPoint(child.position).ToString("F3"));
     }
 
-
     public void SetPointCustom(Vector3 pick, Vector3 end)
     {
-        // Obi
-        //actor = GetComponent<ObiActor>();
-        //ObiCloth cloth = 
-        int two_points = 1;
         Vector3 p1, p4;
-        p1 = new Vector3(0.378f, -0.414f, 1.884f);
-        p4 = new Vector3(0.782f, -0.414f, 1.884f);
+        Transform child_pick, child_place;
 
-        if (two_points == 1)
-        {
-            Transform child_pick, child_place;
+        // Pick and place vectors
+        p1 = pick; 
+        p4 = end;
+        p1.y = -0.414f;
+        p4.y = -0.414f;
+        child_pick = Instantiate(spherePoint, pick, Quaternion.identity);
+        child_place = Instantiate(spherePoint, end, Quaternion.identity);
 
-            // Pick and place vectors
-            p1 = pick; 
-            p4 = end;
-            p1.y = -0.414f;
-            p4.y = -0.414f;
-            child_pick = Instantiate(spherePoint, pick, Quaternion.identity);
-            child_place = Instantiate(spherePoint, end, Quaternion.identity);
+        Vector3 v_pick = ros_world_coord_frame.InverseTransformPoint(child_pick.position);
+        Vector3 v_place = ros_world_coord_frame.InverseTransformPoint(child_place.position);
 
-            Vector3 v_pick = ros_world_coord_frame.InverseTransformPoint(child_pick.position);
-            Vector3 v_place = ros_world_coord_frame.InverseTransformPoint(child_place.position);
+        pathPoints.Add(v_pick + EEF_Offset);
+        pathPoints.Add(v_place + EEF_Offset);
 
-            pathPoints.Add(v_pick + EEF_Offset);
-            pathPoints.Add(v_place + EEF_Offset);
-
-            Debug.LogFormat("Adding point {0} at {1}", 1, v_pick.ToString("F3"));
-            Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
-        }
-        else if (two_points == 0)
-        {
-            
-            Transform childa, childb, childc, childd, childe, childf;
-            Vector3 p2, p3, pu2, pu3;
-
-            p2 = new Vector3(0.48f, -0.414f, 1.884f);
-            p3 = new Vector3(0.6f, -0.414f, 1.884f);        
-            pu2 = new Vector3(0.41f, -0.3f, 1.884f);
-            pu3 = new Vector3(0.78f, -0.3f, 1.884f);
-
-            Transform child_pick, child_int1, child_int2, child_place;
-
-            // Pick and place vectors
-            p1 = pick;
-            p4 = end;
-            p1.y = -0.414f;
-            p4.y = -0.414f;
-            child_pick = Instantiate(spherePoint, pick, Quaternion.identity);
-            child_place = Instantiate(spherePoint, end, Quaternion.identity);
-
-            // Calculate mid-way points for intermediate vectors
-            Vector3 Vpe = end - pick;
-            float x_incr = Vpe.x / 3;
-            float z_incr = Vpe.z / 3;
-            p2 = new Vector3(pick.x + x_incr, pick.y + up_travel, pick.z + z_incr);
-            p3 = new Vector3(pick.x + 2 * x_incr, pick.y + up_travel, pick.z + 2 * z_incr);
-            child_int1 = Instantiate(spherePoint, p2, Quaternion.identity);
-            child_int2 = Instantiate(spherePoint, p3, Quaternion.identity);
-
-            //Debug.Log(p1);
-            //Debug.Log(p4);
-
-            Vector3 v_pick = ros_world_coord_frame.InverseTransformPoint(child_pick.position);
-            Vector3 i1 = ros_world_coord_frame.InverseTransformPoint(child_int1.position);
-            Vector3 i2 = ros_world_coord_frame.InverseTransformPoint(child_int2.position);
-            Vector3 v_place = ros_world_coord_frame.InverseTransformPoint(child_place.position);
-
-            pathPoints.Add(v_pick + EEF_Offset);
-            pathPoints.Add(i1 + EEF_Offset);
-            pathPoints.Add(i2 + EEF_Offset);
-            pathPoints.Add(v_place + EEF_Offset);
-
-            Debug.LogFormat("Adding point {0} at {1}", 1, v_pick.ToString("F3"));
-            Debug.LogFormat("Adding point {0} at {1}", 2, i1.ToString("F3"));
-            Debug.LogFormat("Adding point {0} at {1}", 3, i2.ToString("F3"));
-            Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
-        }
+        Debug.LogFormat("Adding point {0} at {1}", 1, v_pick.ToString("F3"));
+        Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
     }
 
     public void SetPointToKinect(Vector3 pick, Vector3 end, Vector3 pick_norm, Vector3 end_norm)
@@ -391,16 +332,10 @@ public class VoiceCommands : MonoBehaviour
         child_pick = Instantiate(spherePoint, pick, Quaternion.identity);
         child_place = Instantiate(spherePoint, end, Quaternion.identity);
 
-        //Vector3 v_pick = ros_world_coord_frame.InverseTransformPoint(child_pick.position);
-        //Vector3 v_place = ros_world_coord_frame.InverseTransformPoint(child_place.position);
         Vector3 v_pick_norm = new Vector3(pick_norm.x, pick_norm.z, pick_norm.y);
         Vector3 v_place_norm = new Vector3(end_norm.x, end_norm.z, end_norm.y);
         pathPoints.Add(v_pick_norm);
         pathPoints.Add(v_place_norm);
-
-        //pathPoints.Add(pick_norm);
-        //pathPoints.Add(end_norm);
-
         Debug.LogFormat("Adding point {0} at {1}", 1, v_pick_norm.ToString("F3"));
         Debug.LogFormat("Adding point {0} at {1}", 4, v_place_norm.ToString("F3"));
     }

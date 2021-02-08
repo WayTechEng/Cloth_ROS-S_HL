@@ -13,6 +13,8 @@ public class ObiControl : MonoBehaviour
 	GameObject end;
     public GameObject robotFrame; 
     public GameObject Speech_obj;
+    //public GameObject computer_subscriber;
+    public RosSharp.RosBridgeClient.unityComputerPoints computer_subscriber;
     public ObiSolver solver;
     Vector3 pick_orig_pos;
 	Vector3 end_orig_pos;
@@ -28,6 +30,8 @@ public class ObiControl : MonoBehaviour
         ROSConnector = GameObject.Find("ROS Connector");
         pick = GameObject.Find("Pick");
         end = GameObject.Find("End");
+
+        computer_subscriber = ROSConnector.GetComponent<unityComputerPoints>();
 
         Get_cloth_state();
         pick_orig_pos = pick.transform.position;
@@ -94,18 +98,20 @@ public class ObiControl : MonoBehaviour
         var endLocation = end.transform.position;
         var VC = Speech_obj.GetComponent<VoiceCommands>();
 
-        // If points alread created then clear them
-        var clones = GameObject.FindGameObjectsWithTag("clone");
-        if (clones.Length != 0)
-        {
-            VC.ClearPoints();
-        }
+        // If points alread created then clear them. Also reset all the particles
+        VC.ClearPoints();
+        
+
         // Send message to unity first!
         VC.SetPointCustom(pickLocation, endLocation);
         VC.LockPathMoveit();
         actor.GetComponent<ObiParticlePicker>().executing = true;
+        // Enabled solver physics and show the cloth
+        solver.GetComponent<ObiSolver>().enabled = true;
+        actor.GetComponent<ObiCloth>().enabled = true;
+        // Reset particles
+        actor.ResetParticles();
     }
-
 
     public void Visualise()
     {
@@ -215,19 +221,14 @@ public class ObiControl : MonoBehaviour
         Debug.LogFormat("Place NORM..... X x Z:   {0}  x {1} ", place_norm_cloth.x.ToString("F3"), place_norm_cloth.z.ToString("F3"));
 
         // If points alread created then clear them
-        var clones = GameObject.FindGameObjectsWithTag("clone");
-        if (clones.Length != 0)
-        {
-            VC.ClearPoints();
-        }
+        VC.ClearPoints();
 
-        //VC.SetPointCustom(pickLocation, endLocation);
-        VC.SetPointToKinect(pickLocation, endLocation, pick_norm_cloth, place_norm_cloth);
+        // Set points and lock path
+        VC.SetPointCustom(pickLocation, endLocation);
+        //VC.SetPointToKinect(pickLocation, endLocation, pick_norm_cloth, place_norm_cloth);
+        VC.LockPath();
+        //VC.LockPathKinect();
 
-        // Calculate path (send to ROS)
-        //VC.LockPath();
-        VC.LockPathKinect();
-        //actor.GetComponent<ObiParticlePicker>().path_locked = true;
         
     }
 
@@ -239,5 +240,26 @@ public class ObiControl : MonoBehaviour
             Set_cloth_state();
         }
 
-	}
+        bool do_computer_sim = computer_subscriber.message_received;
+        if (do_computer_sim == true)
+        {
+            Debug.Log("Simuating...");
+            // Positions recieved are on the x-z plane at y=0
+            var pick_rec = computer_subscriber.pick;
+            var place_rec = computer_subscriber.place;
+            var pick_world = robotFrame.transform.TransformPoint(pick_rec);
+            var place_world = robotFrame.transform.TransformPoint(place_rec);
+            // Set state of pick and place locations using the spheres
+            pick.transform.position = pick_world;
+            end.transform.position = place_world;
+
+            // Visualise moveit
+            VisualiseMoveit();
+
+            // Reset the flag
+            computer_subscriber.message_received = false;
+        }
+
+
+    }
 }

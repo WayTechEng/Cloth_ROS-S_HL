@@ -26,6 +26,7 @@ namespace Obi
         public class ParticlePickUnityEvent : UnityEvent<ParticlePickEventArgs> { }
 
         public ObiSolver solver;
+        public ObiActor actor;
         public float radiusScale = 1;
 
         public ParticlePickUnityEvent OnParticlePicked;
@@ -67,6 +68,8 @@ namespace Obi
 
         public bool path_locked = false;
         public bool executing = false;
+        private bool hide_the_cloth = false;
+        private DateTime hide_cloth_timer;
 
         public bool init_grab_cloth = false;
         public bool continue_grab_cloth = false;
@@ -85,13 +88,6 @@ namespace Obi
             last_EE_pos = EE.transform.position;
             pick_obj = GameObject.Find("Pick");
             end_obj = GameObject.Find("End");
-            Debug.Log("INIT");
-            Debug.Log("INIT");
-            Debug.Log("INIT");
-            Debug.Log("INIT");
-            Debug.Log("INIT");
-            Debug.Log("INIT");
-            Debug.Log("INIT");
         }
 
         void LateUpdate()
@@ -102,6 +98,22 @@ namespace Obi
             //Updater();
             lastMousePos = Input.mousePosition;
             last_EE_pos = EE.transform.position;
+            if (hide_the_cloth == true)
+            {
+                DateTime T = DateTime.Now;
+                double elapsed = ((TimeSpan)(T - hide_cloth_timer)).TotalMilliseconds;
+                if ((elapsed > 1000) && (solver.GetComponent<ObiSolver>().enabled == true))
+                {
+                    solver.GetComponent<ObiSolver>().enabled = false;
+                    Debug.Log("Stopping physics!");
+                }
+           
+                if ((elapsed > 2000) && (actor.GetComponent<ObiCloth>().enabled == true))
+                {
+                    actor.GetComponent<ObiCloth>().enabled = false;
+                    Debug.Log("Hiding the cloth!");
+                }
+            }
         }
 
         public void Move_by_robot()
@@ -113,6 +125,7 @@ namespace Obi
 
                 if (executing)
                 {
+                    hide_the_cloth = false;
                     Vector3 delta_start = last_EE_pos - pickLocation;
                     if ((delta_start.magnitude <= threshold_distance) && !continue_grab_cloth)
                     {
@@ -121,7 +134,6 @@ namespace Obi
                         continue_grab_cloth = true;
                         executing = false;
                         path_locked = false;
-                        Debug.Log("Grab the cloth!");
                     }
                 }
 
@@ -194,19 +206,28 @@ namespace Obi
                         Debug.Log(dd);
                         if (dd > 0)
                         {
-                            continue_grab_cloth = false;
-                            executing = false;
-
-                            if (OnParticleReleased != null)
-                            {
-                                OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
-                            }
-                            pickedParticleIndex = -1;
+                            release_cloth();
                         }
                     }
                     EE_pos_last = EE_pos;
                 } // End drag event.
             }// End Solver check.
+        }
+
+        public void release_cloth()
+        {
+            // Stop showing cloth and stop the physics on cloth
+            hide_the_cloth = true;
+            hide_cloth_timer = DateTime.Now;
+
+            continue_grab_cloth = false;
+            executing = false;
+
+            if (OnParticleReleased != null)
+            {
+                OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
+            }
+            pickedParticleIndex = -1;
         }
 
         void Move_by_robot_manual()

@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System;
+using UnityEngine;
+
 
 /*
  * Written by Steven Hoang 2020
@@ -21,11 +24,13 @@ namespace RosSharp.RosBridgeClient
         private const uint MOVE_READY_STATE = 4;
         private const uint PREVIEW_SHOWING = 5;
         private const uint UNREACHABLE = 6;
+        private const uint SIMULATE = 11;
         // RobotState with public set and private set
         public static uint robot_state { get; private set; }
         protected override void ReceiveMessage(MessageTypes.Std.UInt32 message)
         {
             robot_state = message.data;
+            Debug.LogFormat("Unity state subscriber: {0}", message);
         }
     }
 }
