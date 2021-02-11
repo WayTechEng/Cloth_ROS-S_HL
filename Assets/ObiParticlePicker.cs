@@ -127,6 +127,27 @@ namespace Obi
                 pickLocation = pick_obj.transform.position;
                 endLocation = end_obj.transform.position;
 
+                ///////////// Find the closest particle next to pick sphere:
+                // Need to calculate the pick location first, not when robot is near the sphere
+                // We still activate the attachment based on closeness, but not don't do the calculation at the same time.
+                double smallest = float.MaxValue;
+                sphere_pos = pick.transform.position;
+                Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
+                for (int i = 0; i < solver.renderablePositions.count; ++i)
+                {
+                    Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
+                    double dx = sphere_pos.x - worldPos.x;
+                    double dz = sphere_pos.z - worldPos.z;
+                    double dist = Math.Sqrt(dx * dx + dz * dz);
+
+                    if (dist < smallest)
+                    {
+                        smallest = dist;
+                        pickedParticleIndex = i;
+                    }
+                }
+
+
                 if (executing)
                 {
                     hide_the_cloth = false;
@@ -151,26 +172,35 @@ namespace Obi
                     pickedParticleIndex = -1;
 
                     // EE position
-                    EE_pos = EE.transform.position;
+                    //EE_pos = EE.transform.position;
                     //Debug.LogFormat("Left_EE position: {0}", EE_pos.ToString("F3"));
 
                     // Init transform
-                    Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
+                    //Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
 
-                    // Find the closest particle hit by the ray:
-                    double smallest = float.MaxValue;
+                    ///////////// Find the closest particle next to pick sphere:
+                    //double smallest = float.MaxValue;
+                    //for (int i = 0; i < solver.renderablePositions.count; ++i)
+                    //{
+                    //    Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
+                    //    double dx = EE_pos.x - worldPos.x;
+                    //    double dz = EE_pos.z - worldPos.z;
+                    //    double dist = Math.Sqrt(dx * dx + dz * dz);
+
+                    //    if (dist < smallest)
+                    //    {
+                    //        smallest = dist;
+                    //        pickedParticleIndex = i;
+                    //    }
+                    //}
+
+                    ///////////// Find stacked particles if they exist - either above or below.
+                    float search_radius = 0.010F;   // Define a search radius to detect particles within.
+                    float search_distance = 0.070F; // Define the verticle distance to which will we search for particles within the radius.
+                    // Find particles that satisfy the radius constraint first, then check the height
                     for (int i = 0; i < solver.renderablePositions.count; ++i)
                     {
-                        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-                        double dx = EE_pos.x - worldPos.x;
-                        double dz = EE_pos.z - worldPos.z;
-                        double dist = Math.Sqrt(dx * dx + dz * dz);
-
-                        if (dist < smallest)
-                        {
-                            smallest = dist;
-                            pickedParticleIndex = i;
-                        }
+                        Debug.Log("");
                     }
 
                     // Check that a particle has been found..
