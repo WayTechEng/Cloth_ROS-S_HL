@@ -114,7 +114,6 @@ public class ObiControl : MonoBehaviour
 
         // If points alread created then clear them. Also reset all the particles
         VC.ClearPoints();
-        
 
         // Send message to unity first!
         VC.SetPointCustom(pickLocation, endLocation);
@@ -244,7 +243,10 @@ public class ObiControl : MonoBehaviour
         VC.LockPath();
         //VC.LockPathKinect();
 
-        
+        Reset_cloth();
+        solver.GetComponent<ObiSolver>().enabled = false;
+        actor.GetComponent<ObiCloth>().enabled = false;
+
     }
 
     private void Update()
