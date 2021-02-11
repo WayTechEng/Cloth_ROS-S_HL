@@ -6287,7 +6287,7 @@ MonoBehaviour:
     batches: []
   groups: []
   inputMesh: {fileID: 4300002, guid: a59c42320188c4432b095000f813a44f, type: 3}
-  scale: {x: 1, y: 1, z: 1}
+  scale: {x: 0.16, y: 1, z: 0.16}
   topology:
     inputMesh: {fileID: 4300002, guid: a59c42320188c4432b095000f813a44f, type: 3}
     scale: {x: 1, y: 1, z: 1}

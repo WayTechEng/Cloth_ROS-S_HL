@@ -52,7 +52,7 @@ namespace Obi
         private int caseswitch = 0;
         private int dt = 35;
         double threshold_distance = 0.015f;
-        double threshold_distance_drop = 0.010f;
+        double threshold_distance_drop = 0.013f;
 
         private float[] arrx = new float[50];
         private float[] arry = new float[50];
@@ -73,6 +73,9 @@ namespace Obi
 
         public bool init_grab_cloth = false;
         public bool continue_grab_cloth = false;
+
+        private bool first_time_in = true;
+        private DateTime drop_timer;
 
         GameObject pick_obj;
         GameObject end_obj;
@@ -110,8 +113,9 @@ namespace Obi
            
                 if ((elapsed > 2000) && (actor.GetComponent<ObiCloth>().enabled == true))
                 {
-                    actor.GetComponent<ObiCloth>().enabled = false;
-                    Debug.Log("Hiding the cloth!");
+                    //actor.GetComponent<ObiCloth>().enabled = false;
+                    //Debug.Log("Hiding the cloth!");
+                    Debug.Log("Not Hiding the cloth - ready for another simulated manipulation");
                 }
             }
         }
@@ -130,6 +134,7 @@ namespace Obi
                     if ((delta_start.magnitude <= threshold_distance) && !continue_grab_cloth)
                     {
                         // Start the grab
+                        solver.GetComponent<ObiSolver>().enabled = true;
                         init_grab_cloth = true;
                         continue_grab_cloth = true;
                         executing = false;
@@ -203,11 +208,32 @@ namespace Obi
                     
                     if (delta_end_xz.magnitude <= threshold_distance_drop)
                     {
+                        //Debug.Log(first_time_in);
+                        if(first_time_in == true)
+                        {
+                            first_time_in = false;
+                            drop_timer = DateTime.Now;
+                            Debug.Log("First time in");
+                        }
+                        //Debug.Log(first_time_in);
+                        //Debug.Log(drop_timer);
                         double dd = EE_pos.y - EE_pos_last.y;
+                        DateTime Timerrr = DateTime.Now;
+                        double drop_elapsed = ((TimeSpan)(Timerrr - drop_timer)).TotalMilliseconds;
+                        //Debug.Log(Timerrr);
+                        Debug.Log(drop_elapsed);
                         Debug.Log(dd);
                         if (dd > 0)
                         {
+                            first_time_in = true;
                             release_cloth();
+                            Debug.Log("Dropped because of distance requirement");
+                        }
+                        else if (drop_elapsed >= 1200)
+                        {
+                            first_time_in = true;
+                            release_cloth();
+                            Debug.Log("Dropped because of time constraint");
                         }
                     }
                     EE_pos_last = EE_pos;

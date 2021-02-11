@@ -11,8 +11,11 @@ public class ObiControl : MonoBehaviour
 	ObiActor actor;
 	GameObject pick;
 	GameObject end;
+    public ObiActor reference_cloth;
+    ObiActor reference_actor;
     public GameObject robotFrame; 
     public GameObject Speech_obj;
+    public Material see_through;
     //public GameObject computer_subscriber;
     public RosSharp.RosBridgeClient.unityComputerPoints computer_subscriber;
     public ObiSolver solver;
@@ -30,6 +33,15 @@ public class ObiControl : MonoBehaviour
         ROSConnector = GameObject.Find("ROS Connector");
         pick = GameObject.Find("Pick");
         end = GameObject.Find("End");
+
+        MaterialPropertyBlock props = new MaterialPropertyBlock();
+        props.SetColor("_Color", Color.clear);
+        //props.SetColor("")
+        //reference_cloth.GetComponent<Renderer>().SetPropertyBlock(props);
+        reference_cloth.GetComponent<MeshRenderer>().material = see_through;
+
+        // Disable solver at the begginning
+        solver.GetComponent<ObiSolver>().enabled = false;
 
         computer_subscriber = ROSConnector.GetComponent<unityComputerPoints>();
 
@@ -77,8 +89,10 @@ public class ObiControl : MonoBehaviour
 		{
 			return;
 		}
-		actor.ResetParticles();
-		print("Reset Cloth!");
+        solver.GetComponent<ObiSolver>().enabled = true;
+        actor.GetComponent<ObiCloth>().enabled = true;
+        actor.ResetParticles();
+        print("Reset Cloth!");
 	}
 
 	public void Fold()
@@ -110,7 +124,7 @@ public class ObiControl : MonoBehaviour
         solver.GetComponent<ObiSolver>().enabled = true;
         actor.GetComponent<ObiCloth>().enabled = true;
         // Reset particles
-        actor.ResetParticles();
+        //actor.ResetParticles();
     }
 
     public void Visualise()
@@ -118,6 +132,7 @@ public class ObiControl : MonoBehaviour
         Debug.Log("setting points...");
         // Set the pick and place
         actor = GetComponent<ObiActor>();
+        reference_actor = reference_cloth.GetComponent<ObiActor>();
         pick = GameObject.Find("Pick");
         end = GameObject.Find("End");
 
@@ -127,8 +142,8 @@ public class ObiControl : MonoBehaviour
 
         // Transform object to position relative to cloth frame
         //Debug.LogFormat("Pick position in world frame:\n{0}\n", pickLocation.ToString("F3"));
-        var pickLocationCloth = actor.transform.InverseTransformPoint(pickLocation);
-        var placeLocationCloth = actor.transform.InverseTransformPoint(endLocation);
+        var pickLocationCloth = reference_actor.transform.InverseTransformPoint(pickLocation);
+        var placeLocationCloth = reference_actor.transform.InverseTransformPoint(endLocation);
         Debug.LogFormat("Pick position W.R.T. Cloth:\n{0}\n", pickLocationCloth.ToString("F3"));
         Debug.LogFormat("Place position W.R.T. Cloth:\n{0}\n", placeLocationCloth.ToString("F3"));
 
