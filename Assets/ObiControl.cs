@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using Obi;
 using RosSharp.RosBridgeClient;
 using RosSharp;
@@ -24,6 +27,9 @@ public class ObiControl : MonoBehaviour
 	double threshold_distance = 0.01f;
     private DateTime startTime, tempTime;
     double time_threshold = 2000;
+    private List<Vector3> pick_list;
+    private List<Vector3> place_list;
+    private bool first_fold = false;
 
     // ROS Connector to communicate with ROS
     private GameObject ROSConnector;
@@ -106,10 +112,11 @@ public class ObiControl : MonoBehaviour
         Debug.Log("setting points...");
         // Set the pick and place
         actor = GetComponent<ObiActor>();
-        
 
         var pickLocation = pick.transform.position;
         var endLocation = end.transform.position;
+        //pick_list.Add(pick.transform.position);
+        //place_list.Add(end.transform.position);
         var VC = Speech_obj.GetComponent<VoiceCommands>();
 
         // If points alread created then clear them. Also reset all the particles
@@ -124,6 +131,11 @@ public class ObiControl : MonoBehaviour
         actor.GetComponent<ObiCloth>().enabled = true;
         // Reset particles
         //actor.ResetParticles();
+    }
+
+    public void VisualiseMultiFold()
+    {
+
     }
 
     public void Visualise()
@@ -178,6 +190,7 @@ public class ObiControl : MonoBehaviour
                 minz = z;
             }
         }
+        
         float size_x = Math.Abs(maxx - minx);
         float size_z = Math.Abs(maxz - minz);
         Debug.LogFormat("SIZE OF X x Z:   {0}  x {1} ", size_x.ToString("F3"), size_z.ToString("F3"));
@@ -194,8 +207,6 @@ public class ObiControl : MonoBehaviour
 
         Debug.LogFormat("Pick position BOUNDING:\n{0}\n", pickLocationCloth.ToString("F3"));
         Debug.LogFormat("Place position BOUNDING:\n{0}\n", placeLocationCloth.ToString("F3"));
-
-
 
         // Normalise pick and place positions in the cloths frame
         // Arbitrarily set the zero position at x = -(size/2) , z = +(size/2) ..... Top left corner when looking from game view
@@ -246,7 +257,6 @@ public class ObiControl : MonoBehaviour
         Reset_cloth();
         solver.GetComponent<ObiSolver>().enabled = false;
         actor.GetComponent<ObiCloth>().enabled = false;
-
     }
 
     private void Update()
