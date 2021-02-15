@@ -27,8 +27,8 @@ public class ObiControl : MonoBehaviour
 	double threshold_distance = 0.01f;
     private DateTime startTime, tempTime;
     double time_threshold = 2000;
-    private List<Vector3> pick_list;
-    private List<Vector3> place_list;
+    private List<Vector3> pick_list = new List<Vector3>();
+    private List<Vector3> place_list = new List<Vector3>();
     private bool first_fold = false;
 
     // ROS Connector to communicate with ROS
@@ -115,8 +115,8 @@ public class ObiControl : MonoBehaviour
 
         var pickLocation = pick.transform.position;
         var endLocation = end.transform.position;
-        //pick_list.Add(pick.transform.position);
-        //place_list.Add(end.transform.position);
+        pick_list.Add(pick.transform.position);
+        place_list.Add(end.transform.position);
         var VC = Speech_obj.GetComponent<VoiceCommands>();
 
         // If points alread created then clear them. Also reset all the particles
@@ -135,7 +135,23 @@ public class ObiControl : MonoBehaviour
 
     public void VisualiseMultiFold()
     {
-
+        //Debug.LogFormat("Length of pick_list is: {0}",pick_list.Count);
+        //Debug.Log(place_list[0]);
+        if (pick_list.Count == 2)
+        {
+            Debug.Log("Performing Multi fold");
+            var VC = Speech_obj.GetComponent<VoiceCommands>();
+            VC.SetPointCustomMulti(pick_list, place_list);
+            VC.LockPathKinect();
+        }
+        else if(pick_list.Count < 2)
+        {
+            Debug.Log("Not enough points selected");
+        }
+        else if (pick_list.Count > 2)
+        {
+            Debug.Log("Too many points selected");
+        }
     }
 
     public void Visualise()

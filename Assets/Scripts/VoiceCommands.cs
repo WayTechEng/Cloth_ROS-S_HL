@@ -222,7 +222,11 @@ public class VoiceCommands : MonoBehaviour
             point.GetComponent<MeshRenderer>().material.color = Color.blue;
         }
         ROSConnector.GetComponent<PathRequest>().SendRequest(goal_points);
+    }
 
+    public void LockPathMulti()
+    {
+        Debug.Log("");
     }
 
     // Causes Robot to begin following trajectory path planned
@@ -319,6 +323,32 @@ public class VoiceCommands : MonoBehaviour
         Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
     }
 
+    public void SetPointCustomMulti(List<Vector3> pick, List<Vector3> place)
+    {
+        Vector3 pi1, pi2, pl1, pl2;
+        Transform child_pick_1, child_pick_2, child_place_1, child_place_2;
+
+        child_pick_1 = Instantiate(spherePoint, pick[0], Quaternion.identity);
+        child_pick_2 = Instantiate(spherePoint, pick[1], Quaternion.identity);
+        child_place_1 = Instantiate(spherePoint, place[0], Quaternion.identity);
+        child_place_2 = Instantiate(spherePoint, place[1], Quaternion.identity);
+
+        Vector3 v_pick_1 = ros_world_coord_frame.InverseTransformPoint(child_pick_1.position);
+        Vector3 v_pick_2 = ros_world_coord_frame.InverseTransformPoint(child_pick_2.position);
+        Vector3 v_place_1 = ros_world_coord_frame.InverseTransformPoint(child_place_1.position);
+        Vector3 v_place_2 = ros_world_coord_frame.InverseTransformPoint(child_place_2.position);
+
+        pathPoints.Add(v_pick_1 + EEF_Offset);
+        pathPoints.Add(v_place_1 + EEF_Offset);
+        pathPoints.Add(v_pick_2 + EEF_Offset);
+        pathPoints.Add(v_place_2 + EEF_Offset);
+        Debug.Log("----- PICK ------");
+        Debug.LogFormat("Adding point {0} at {1}", 1, v_pick_1.ToString("F3"));
+        Debug.LogFormat("Adding point {0} at {1}", 4, v_place_1.ToString("F3"));
+        Debug.Log("----- PLACE ------");
+        Debug.LogFormat("Adding point {0} at {1}", 1, v_pick_2.ToString("F3"));
+        Debug.LogFormat("Adding point {0} at {1}", 4, v_place_2.ToString("F3"));
+    }
     public void SetPointToKinect(Vector3 pick, Vector3 end, Vector3 pick_norm, Vector3 end_norm)
     {
         Vector3 p1, p4;
@@ -339,7 +369,6 @@ public class VoiceCommands : MonoBehaviour
         Debug.LogFormat("Adding point {0} at {1}", 1, v_pick_norm.ToString("F3"));
         Debug.LogFormat("Adding point {0} at {1}", 4, v_place_norm.ToString("F3"));
     }
-
 
     public void ExecuteCustom()
     {
