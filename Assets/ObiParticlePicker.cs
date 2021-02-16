@@ -109,8 +109,10 @@ namespace Obi
                 double elapsed = ((TimeSpan)(T - hide_cloth_timer)).TotalMilliseconds;
                 if ((elapsed > 1000) && (solver.GetComponent<ObiSolver>().enabled == true))
                 {
-                    solver.GetComponent<ObiSolver>().enabled = false;
-                    Debug.Log("Stopping physics!");
+                    //Debug.Log("Not Stopping physics!");
+                    //solver.GetComponent<ObiSolver>().enabled = false;
+                    solver.GetComponent<ObiSolver>().enabled = true;
+                    //Debug.Log("Stopping physics!");
                 }
            
                 if ((elapsed > 2000) && (actor.GetComponent<ObiCloth>().enabled == true))
@@ -118,6 +120,7 @@ namespace Obi
                     //actor.GetComponent<ObiCloth>().enabled = false;
                     //Debug.Log("Hiding the cloth!");
                     Debug.Log("Not Hiding the cloth - ready for another simulated manipulation");
+                    hide_the_cloth = false;
                 }
             }
         }
@@ -267,15 +270,17 @@ namespace Obi
                         //Debug.Log(Timerrr);
                         Debug.Log(drop_elapsed);
                         Debug.Log(dd);
-                        if (dd > 0)
+                        if (dd > 0.1)
                         {
                             first_time_in = true;
+                            hide_the_cloth = true;
                             release_cloth();
                             Debug.Log("Dropped because of distance requirement");
                         }
                         else if (drop_elapsed >= 1200)
                         {
                             first_time_in = true;
+                            hide_the_cloth = true;
                             release_cloth();
                             Debug.Log("Dropped because of time constraint");
                         }
@@ -288,7 +293,6 @@ namespace Obi
         public void release_cloth()
         {
             // Stop showing cloth and stop the physics on cloth
-            hide_the_cloth = true;
             hide_cloth_timer = DateTime.Now;
 
             continue_grab_cloth = false;

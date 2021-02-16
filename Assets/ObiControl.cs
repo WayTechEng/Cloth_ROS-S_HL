@@ -30,6 +30,8 @@ public class ObiControl : MonoBehaviour
     private List<Vector3> pick_list = new List<Vector3>();
     private List<Vector3> place_list = new List<Vector3>();
     private bool first_fold = false;
+    private List<Vector4> saved_state = new List<Vector4>();
+    private List<float> saved_masses = new List<float>();
 
     // ROS Connector to communicate with ROS
     private GameObject ROSConnector;
@@ -39,12 +41,16 @@ public class ObiControl : MonoBehaviour
         ROSConnector = GameObject.Find("ROS Connector");
         pick = GameObject.Find("Pick");
         end = GameObject.Find("End");
+        actor = GetComponent<ObiActor>();
 
         MaterialPropertyBlock props = new MaterialPropertyBlock();
         props.SetColor("_Color", Color.clear);
         //props.SetColor("")
         //reference_cloth.GetComponent<Renderer>().SetPropertyBlock(props);
         reference_cloth.GetComponent<MeshRenderer>().material = see_through;
+
+        // Save the initial cloth state
+        //init_bp = actor.GetComponent<ObiActorBlueprint>();
 
         // Disable solver at the begginning
         solver.GetComponent<ObiSolver>().enabled = false;
@@ -95,10 +101,11 @@ public class ObiControl : MonoBehaviour
 		{
 			return;
 		}
-        solver.GetComponent<ObiSolver>().enabled = true;
-        actor.GetComponent<ObiCloth>().enabled = true;
         actor.ResetParticles();
-        print("Reset Cloth!");
+        Debug.Log("Reset Cloth!");
+        solver.GetComponent<ObiSolver>().enabled = false;
+        actor.GetComponent<ObiCloth>().enabled = false;        
+        Debug.Log("Hiding cloth");        
 	}
 
 	public void Fold()
@@ -111,7 +118,6 @@ public class ObiControl : MonoBehaviour
     {
         Debug.Log("setting points...");
         // Set the pick and place
-        actor = GetComponent<ObiActor>();
 
         var pickLocation = pick.transform.position;
         var endLocation = end.transform.position;
@@ -158,7 +164,6 @@ public class ObiControl : MonoBehaviour
     {
         Debug.Log("setting points...");
         // Set the pick and place
-        actor = GetComponent<ObiActor>();
         reference_actor = reference_cloth.GetComponent<ObiActor>();
         pick = GameObject.Find("Pick");
         end = GameObject.Find("End");
@@ -273,6 +278,49 @@ public class ObiControl : MonoBehaviour
         Reset_cloth();
         solver.GetComponent<ObiSolver>().enabled = false;
         actor.GetComponent<ObiCloth>().enabled = false;
+    }
+
+    public void save_state()
+    {
+        Debug.Log("Saving state");
+        if (saved_state.Count == 0)
+        {
+            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            {
+                //Vector3 Pos = solver.renderablePositions[i];
+                Vector4 Pos = solver.positions[i];
+                float m = solver.invMasses[i];
+                saved_masses.Add(m);
+                saved_state.Add(Pos);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            {
+                //Vector3 Pos = solver.renderablePositions[i];
+                Vector4 Pos = solver.positions[i];
+                float m = solver.invMasses[i];
+                saved_masses.Add(m);
+                saved_state[i] = Pos;
+            }
+        }
+    }
+
+    public void load_previous_state()
+    {        
+        Debug.Log("Loading previous state");
+        for (int i = 0; i < solver.renderablePositions.count; ++i)
+        {            
+            solver.invMasses[i] = 0;
+            solver.positions[i] = saved_state[i];
+            //solver.renderablePositions[i] = saved_state[i];
+        }
+        // re-apply the inverse masses
+        for (int i = 0; i < solver.renderablePositions.count; ++i)
+        {
+            solver.invMasses[i] = saved_masses[i];
+        }
     }
 
     private void Update()

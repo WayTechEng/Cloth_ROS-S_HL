@@ -165,7 +165,7 @@ MonoBehaviour:
       axisConstraint: 0
   - localizationKey: 
     keyword: DetectCloth
-    keyCode: 112
+    keyCode: 0
     action:
       id: 0
       description: Toggle Profiler
@@ -173,6 +173,20 @@ MonoBehaviour:
   - localizationKey: 
     keyword: Align
     keyCode: 122
+    action:
+      id: 0
+      description: Toggle Profiler
+      axisConstraint: 0
+  - localizationKey: 
+    keyword: Reset
+    keyCode: 106
+    action:
+      id: 0
+      description: Toggle Profiler
+      axisConstraint: 0
+  - localizationKey: 
+    keyword: Save State
+    keyCode: 112
     action:
       id: 0
       description: Toggle Profiler
