@@ -11,7 +11,6 @@ public class ClothTransformer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        int a;
         //Debug.Log("Hello");
     }
 

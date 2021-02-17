@@ -6,6 +6,7 @@ using UnityEngine.Events;
 using Obi;
 using RosSharp.RosBridgeClient;
 using RosSharp;
+using TMPro;
 
 
 [RequireComponent(typeof(ObiActor))]
@@ -24,16 +25,12 @@ public class ObiControl : MonoBehaviour
     public ObiSolver solver;
     Vector3 pick_orig_pos;
 	Vector3 place_orig_pose;
-	double threshold_distance = 0.01f;
-    private DateTime startTime, tempTime;
-    double time_threshold = 2000;
-    private List<Vector3> pick_list = new List<Vector3>();
-    private List<Vector3> place_list = new List<Vector3>();
-    private bool first_fold = false;
+    DateTime? start_time = null;
+    private List<List<Vector3>> pick_place_list = new List<List<Vector3>>();
     private List<List<Vector4>> saved_state = new List<List<Vector4>>();
     private List<List<Vector3>> saved_sphere_positions = new List<List<Vector3>>();
     private List<List<float>> saved_masses = new List<List<float>>();
-
+    private List<GameObject> pointer_list = new List<GameObject>();
 
     // ROS Connector to communicate with ROS
     private GameObject ROSConnector;
@@ -44,6 +41,14 @@ public class ObiControl : MonoBehaviour
         pick = GameObject.Find("Pick");
         place = GameObject.Find("End");
         actor = GetComponent<ObiActor>();
+        
+        pointer_list.Add(GameObject.Find("pick_marker1"));
+        pointer_list.Add(GameObject.Find("place_marker1"));
+        pointer_list.Add(GameObject.Find("pick_marker2"));
+        pointer_list.Add(GameObject.Find("place_marker2"));
+        pointer_list.Add(GameObject.Find("pick_marker3"));
+        pointer_list.Add(GameObject.Find("place_marker3"));
+        ResetMarkers();
 
         MaterialPropertyBlock props = new MaterialPropertyBlock();
         props.SetColor("_Color", Color.clear);
@@ -93,10 +98,27 @@ public class ObiControl : MonoBehaviour
 			return;
 		}
 		actor.ResetParticles();
-		pick.transform.position = pick_orig_pos;
+        pick.SetActive(true);
+        place.SetActive(true);
+        pick.transform.position = pick_orig_pos;
 		place.transform.position = place_orig_pose;
-		print("Reset All!");		
+        pick_place_list = new List<List<Vector3>>();
+        saved_state = new List<List<Vector4>>();
+        saved_sphere_positions = new List<List<Vector3>>();
+        saved_masses = new List<List<float>>();
+        ResetMarkers();
+		print("Reset All!");
 	}
+
+    public void ResetMarkers()
+    {
+        int x = pointer_list.Count;
+        for (int i = 0; i < x; i++)
+        {
+            pointer_list[i].SetActive(false);
+        }
+    }
+
 	public void Reset_cloth()
 	{
 		if (actor == null || !actor.isLoaded)
@@ -107,7 +129,7 @@ public class ObiControl : MonoBehaviour
         Debug.Log("Reset Cloth!");
         solver.GetComponent<ObiSolver>().enabled = false;
         actor.GetComponent<ObiCloth>().enabled = false;        
-        Debug.Log("Hiding cloth");        
+        Debug.Log("Hiding cloth");      
 	}
 
 	public void Fold()
@@ -119,19 +141,16 @@ public class ObiControl : MonoBehaviour
     public void VisualiseMoveit()
     {
         //Debug.Log("setting points...");
-        // Set the pick and place
-
-        var pickLocation = pick.transform.position;
-        var endLocation = place.transform.position;
-        pick_list.Add(pick.transform.position);
-        place_list.Add(place.transform.position);
+        //pick_list.Add(pick.transform.position);
+        //place_list.Add(place.transform.position);
+        
         var VC = Speech_obj.GetComponent<VoiceCommands>();
 
         // If points alread created then clear them. Also reset all the particles
         VC.ClearPoints();
 
         // Send message to unity first!
-        VC.SetPointCustom(pickLocation, endLocation);
+        VC.SetPointCustom(pick.transform.position, place.transform.position);
         VC.LockPathMoveit();
         actor.GetComponent<ObiParticlePicker>().executing = true;
         // Enabled solver physics and show the cloth
@@ -141,27 +160,34 @@ public class ObiControl : MonoBehaviour
         SaveState();
         // Reset particles
         //actor.ResetParticles();
+        VC.ClearPoints();
     }
 
     public void VisualiseMultiFold()
     {
-        //Debug.LogFormat("Length of pick_list is: {0}",pick_list.Count);
-        //Debug.Log(place_list[0]);
-        if (pick_list.Count == 2)
+        // Hide the cloth and spheres
+        solver.GetComponent<ObiSolver>().enabled = false;
+        actor.GetComponent<ObiCloth>().enabled = false;
+        pick.SetActive(false);
+        place.SetActive(false);
+        start_time = DateTime.Now;
+        var VC = Speech_obj.GetComponent<VoiceCommands>();
+        if (pick_place_list.Count > 0)
         {
             Debug.Log("Performing Multi fold");
-            var VC = Speech_obj.GetComponent<VoiceCommands>();
-            VC.SetPointCustomMulti(pick_list, place_list);
+            
+            VC.SetPointCustomMulti(pick_place_list);
             VC.LockPathKinect();
         }
-        else if(pick_list.Count < 2)
+        else
         {
-            Debug.Log("Not enough points selected");
+            Debug.Log("No points selected...");
         }
-        else if (pick_list.Count > 2)
-        {
-            Debug.Log("Too many points selected");
-        }
+
+        // put arrows and text over the pick and place points
+        VC.ClearPoints();
+        AddVisualMarkers();
+
     }
 
     public void Visualise()
@@ -320,6 +346,12 @@ public class ObiControl : MonoBehaviour
         temp_sphere_list.Add(pick.transform.position);
         temp_sphere_list.Add(place.transform.position);
         saved_sphere_positions.Add(temp_sphere_list);
+
+        // Save positions to list for RV controller
+        List<Vector3> temp_list = new List<Vector3>();
+        temp_list.Add(pick.transform.position);
+        temp_list.Add(place.transform.position);
+        pick_place_list.Add(temp_list);
     }
 
     public void LoadSavedState()
@@ -342,14 +374,30 @@ public class ObiControl : MonoBehaviour
             //Debug.Log(x);
             pick.transform.position = saved_sphere_positions[x - 1][0];
             place.transform.position = saved_sphere_positions[x - 1][1];
-            saved_sphere_positions.RemoveAt(x-1);
-            saved_state.RemoveAt(x-1);
-            saved_masses.RemoveAt(x-1);
+            saved_sphere_positions.RemoveAt(x - 1);
+            pick_place_list.RemoveAt(x - 1);
+            saved_state.RemoveAt(x - 1);
+            saved_masses.RemoveAt(x - 1);
             Debug.Log("Sucessfully loaded previous state");
         }
         else
         {
             Debug.Log("Unable to load previous state.... Previous state does not exist?");
+        }
+    }
+
+    public void AddVisualMarkers()
+    {
+        int x = pick_place_list.Count * 2;
+        int c = 0;
+        Debug.Log("Setting positions");
+        for (int i = 0; i < x; i+=2)
+        {
+            pointer_list[i].SetActive(true);
+            pointer_list[i].transform.position = pick_place_list[c][0];
+            pointer_list[i + 1].SetActive(true);
+            pointer_list[i + 1].transform.position = pick_place_list[c][1];
+            c++;
         }
     }
 
@@ -360,6 +408,22 @@ public class ObiControl : MonoBehaviour
         {
             Set_cloth_state();
         }
+
+        //if(start_time != null)
+        //{
+        //    if( (((TimeSpan)(DateTime.Now - start_time)).TotalMilliseconds) > 10*1000 )
+        //    {
+        //        pick.SetActive(true);
+        //        place.SetActive(true);
+        //        pick.transform.position = pick_orig_pos;
+        //        place.transform.position = place_orig_pose;
+        //        start_time = null;
+        //    }
+        //}
+        //else
+        //{
+        //    //Debug.Log("Start time is null");
+        //}
 
         bool do_computer_sim = computer_subscriber.message_received;
         if (do_computer_sim == true)

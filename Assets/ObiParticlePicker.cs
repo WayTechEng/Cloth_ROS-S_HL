@@ -36,33 +36,19 @@ namespace Obi
 
         public GameObject speech_obj;
         public ObiControl obi_control;
+        public GameObject EE;
+        GameObject pick_obj;
+        GameObject end_obj;        
 
-        private Vector3 lastMousePos = Vector3.zero;
         private int pickedParticleIndex = -1;
         private List<int> pickedParticleIndexs = new List<int>();
-        private float pickedParticleDepth = 0;
-        private double time_threshold = 500;
 
-        private Vector3 pickLocation;  // Mouse pick location
-        private Vector3 trailingLocation;
-        private Vector3 endLocation;
-
-        private int counter = 0;
-        private DateTime startTime, endTime;
-        private int steps = 0;
-        private float movement = 0;
-        private int caseswitch = 0;
-        private int dt = 35;
-        double threshold_distance = 0.015f;
+        //double threshold_distance = 0.015f;
         double threshold_distance_height = 0.05f;
         double threshold_distance_drop = 0.013f;
-        double threshold_height = -0.395f;
+        //double threshold_height = -0.395f;
         double threshold_retract_velocity = 2.0f;
-        float search_radius = 0.040F;   // Define a search radius to detect particles within.
-
-        private float[] arrx = new float[50];
-        private float[] arry = new float[50];
-        private float[] arrz = new float[50];
+        float search_radius = 0.030F;   // Define a search radius to detect particles within.
 
         public Vector3 pick;
         public Vector3 end;
@@ -70,28 +56,22 @@ namespace Obi
         private Vector3 EE_pos;
         private Vector3 last_EE_pos = Vector3.zero;
         private Vector3 EE_pos_last = Vector3.zero;
-
+        private Vector3 pickLocation;  // Mouse pick location
+        private Vector3 endLocation;
 
         public bool path_locked = false;
         public bool executing = false;
         private bool hide_the_cloth = false;
         private bool found_particles_to_grab = false;
-        private DateTime hide_cloth_timer;
-
         public bool init_grab_cloth = false;
         public bool continue_grab_cloth = false;
-
         private bool first_time_in = true;
-        private DateTime drop_timer;
 
-        GameObject pick_obj;
-        GameObject end_obj;
-
-        public GameObject EE;
+        private DateTime hide_cloth_timer;        
+        private DateTime drop_timer;        
 
         void Awake()
         {
-            lastMousePos = Input.mousePosition;
             EE_pos = EE.transform.position;
             last_EE_pos = EE.transform.position;
             pick_obj = GameObject.Find("Pick");
@@ -102,7 +82,6 @@ namespace Obi
 
         void LateUpdate()
         {
-            lastMousePos = Input.mousePosition;
             if (!(EE_pos.magnitude == EE.transform.position.magnitude))
             {
                 last_EE_pos = EE_pos;
@@ -166,7 +145,6 @@ namespace Obi
                             if (OnParticlePicked != null)
                             {
                                 Pick_particles();
-                                startTime = DateTime.Now;
                             }
                             solver.GetComponent<ObiSolver>().enabled = true;
                             continue_grab_cloth = true;
@@ -262,7 +240,8 @@ namespace Obi
                     if (dist <= search_radius)
                     {
                         pickedParticleIndexs.Add(i);
-                        Debug.Log(i);
+                        //AddSphereToPoint(worldPos);
+                        //Debug.Log(i);
                     }
                 }
             }
@@ -327,6 +306,21 @@ namespace Obi
             pickedParticleIndexs = new List<int>();
         }
 
+        public void AddSphereToPoint(Vector3 p)
+        {
+            //Debug.Log("Adding sphere");
+            //Transform spherePoint = null;
+            //spherePoint.tag = "clone";
+            //Transform child;
+            //child = Instantiate(spherePoint, p, Quaternion.identity);
+            GameObject s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            s.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+            s.name = "Sphere1";
+            //s.transform.
+            s.transform.position = p;
+            s.GetComponent<Renderer>().material.color = Color.blue;
+        }
+
         void Move_by_robot_manual()
         {
             if (solver != null)
@@ -368,7 +362,6 @@ namespace Obi
                         if (OnParticlePicked != null)
                         {
                             OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
-                            startTime = DateTime.Now;
                         }
                     }
 
