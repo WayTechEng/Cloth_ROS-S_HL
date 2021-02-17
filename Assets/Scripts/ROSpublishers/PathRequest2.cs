@@ -32,7 +32,7 @@ namespace RosSharp.RosBridgeClient
             {
                 // Publish the first message from queue
                 Publish(message_queue[0]);
-                Debug.LogFormat("Published: {0}", message_queue[0]);
+                //Debug.LogFormat("Published: {0}", message_queue[0]);
                 // Then remove it
                 message_queue.RemoveAt(0);
             }

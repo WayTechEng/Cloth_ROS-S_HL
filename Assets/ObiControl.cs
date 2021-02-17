@@ -13,7 +13,7 @@ public class ObiControl : MonoBehaviour
 {
 	ObiActor actor;
 	GameObject pick;
-	GameObject end;
+	GameObject place;
     public ObiActor reference_cloth;
     ObiActor reference_actor;
     public GameObject robotFrame; 
@@ -23,15 +23,17 @@ public class ObiControl : MonoBehaviour
     public RosSharp.RosBridgeClient.unityComputerPoints computer_subscriber;
     public ObiSolver solver;
     Vector3 pick_orig_pos;
-	Vector3 end_orig_pos;
+	Vector3 place_orig_pose;
 	double threshold_distance = 0.01f;
     private DateTime startTime, tempTime;
     double time_threshold = 2000;
     private List<Vector3> pick_list = new List<Vector3>();
     private List<Vector3> place_list = new List<Vector3>();
     private bool first_fold = false;
-    private List<Vector4> saved_state = new List<Vector4>();
-    private List<float> saved_masses = new List<float>();
+    private List<List<Vector4>> saved_state = new List<List<Vector4>>();
+    private List<List<Vector3>> saved_sphere_positions = new List<List<Vector3>>();
+    private List<List<float>> saved_masses = new List<List<float>>();
+
 
     // ROS Connector to communicate with ROS
     private GameObject ROSConnector;
@@ -40,7 +42,7 @@ public class ObiControl : MonoBehaviour
     {
         ROSConnector = GameObject.Find("ROS Connector");
         pick = GameObject.Find("Pick");
-        end = GameObject.Find("End");
+        place = GameObject.Find("End");
         actor = GetComponent<ObiActor>();
 
         MaterialPropertyBlock props = new MaterialPropertyBlock();
@@ -59,7 +61,7 @@ public class ObiControl : MonoBehaviour
 
         Get_cloth_state();
         pick_orig_pos = pick.transform.position;
-        end_orig_pos = end.transform.position;
+        place_orig_pose = place.transform.position;
     }
 
     public void Get_cloth_state()
@@ -92,7 +94,7 @@ public class ObiControl : MonoBehaviour
 		}
 		actor.ResetParticles();
 		pick.transform.position = pick_orig_pos;
-		end.transform.position = end_orig_pos;
+		place.transform.position = place_orig_pose;
 		print("Reset All!");		
 	}
 	public void Reset_cloth()
@@ -116,13 +118,13 @@ public class ObiControl : MonoBehaviour
 
     public void VisualiseMoveit()
     {
-        Debug.Log("setting points...");
+        //Debug.Log("setting points...");
         // Set the pick and place
 
         var pickLocation = pick.transform.position;
-        var endLocation = end.transform.position;
+        var endLocation = place.transform.position;
         pick_list.Add(pick.transform.position);
-        place_list.Add(end.transform.position);
+        place_list.Add(place.transform.position);
         var VC = Speech_obj.GetComponent<VoiceCommands>();
 
         // If points alread created then clear them. Also reset all the particles
@@ -135,6 +137,8 @@ public class ObiControl : MonoBehaviour
         // Enabled solver physics and show the cloth
         solver.GetComponent<ObiSolver>().enabled = true;
         actor.GetComponent<ObiCloth>().enabled = true;
+        // Save the cloth state
+        SaveState();
         // Reset particles
         //actor.ResetParticles();
     }
@@ -166,10 +170,10 @@ public class ObiControl : MonoBehaviour
         // Set the pick and place
         reference_actor = reference_cloth.GetComponent<ObiActor>();
         pick = GameObject.Find("Pick");
-        end = GameObject.Find("End");
+        place = GameObject.Find("End");
 
         var pickLocation = pick.transform.position;
-        var endLocation = end.transform.position;
+        var endLocation = place.transform.position;
         var VC = Speech_obj.GetComponent<VoiceCommands>();
 
         // Transform object to position relative to cloth frame
@@ -280,46 +284,72 @@ public class ObiControl : MonoBehaviour
         actor.GetComponent<ObiCloth>().enabled = false;
     }
 
-    public void save_state()
+    public void SaveState()
     {
-        Debug.Log("Saving state");
+        List<float> temp_mass_list = new List<float>();
+        List<Vector4> temp_state_list = new List<Vector4>();
         if (saved_state.Count == 0)
         {
+            Debug.Log("Saving initial state");            
             for (int i = 0; i < solver.renderablePositions.count; ++i)
             {
                 //Vector3 Pos = solver.renderablePositions[i];
                 Vector4 Pos = solver.positions[i];
                 float m = solver.invMasses[i];
-                saved_masses.Add(m);
-                saved_state.Add(Pos);
+                temp_mass_list.Add(m);
+                temp_state_list.Add(Pos);
             }
         }
         else
         {
+            Debug.Log("Saving state");
             for (int i = 0; i < solver.renderablePositions.count; ++i)
             {
                 //Vector3 Pos = solver.renderablePositions[i];
                 Vector4 Pos = solver.positions[i];
                 float m = solver.invMasses[i];
-                saved_masses.Add(m);
-                saved_state[i] = Pos;
+                temp_mass_list.Add(m);
+                temp_state_list.Add(Pos);
             }
         }
+        saved_masses.Add(temp_mass_list);
+        saved_state.Add(temp_state_list);
+
+        // Also save the sphere positions
+        List<Vector3> temp_sphere_list = new List<Vector3>();
+        temp_sphere_list.Add(pick.transform.position);
+        temp_sphere_list.Add(place.transform.position);
+        saved_sphere_positions.Add(temp_sphere_list);
     }
 
-    public void load_previous_state()
-    {        
-        Debug.Log("Loading previous state");
-        for (int i = 0; i < solver.renderablePositions.count; ++i)
-        {            
-            solver.invMasses[i] = 0;
-            solver.positions[i] = saved_state[i];
-            //solver.renderablePositions[i] = saved_state[i];
-        }
-        // re-apply the inverse masses
-        for (int i = 0; i < solver.renderablePositions.count; ++i)
+    public void LoadSavedState()
+    {
+        //Debug.Log("Loading previous state....");
+        int x = saved_state.Count;
+        if (x > 0)
         {
-            solver.invMasses[i] = saved_masses[i];
+            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            {
+                solver.invMasses[i] = 0;
+                solver.positions[i] = saved_state[x - 1][i];
+                //solver.renderablePositions[i] = saved_state[i];
+            }
+            // re-apply the inverse masses
+            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            {
+                solver.invMasses[i] = saved_masses[x - 1][i];
+            }
+            //Debug.Log(x);
+            pick.transform.position = saved_sphere_positions[x - 1][0];
+            place.transform.position = saved_sphere_positions[x - 1][1];
+            saved_sphere_positions.RemoveAt(x-1);
+            saved_state.RemoveAt(x-1);
+            saved_masses.RemoveAt(x-1);
+            Debug.Log("Sucessfully loaded previous state");
+        }
+        else
+        {
+            Debug.Log("Unable to load previous state.... Previous state does not exist?");
         }
     }
 
@@ -342,7 +372,7 @@ public class ObiControl : MonoBehaviour
             var place_world = robotFrame.transform.TransformPoint(place_rec);
             // Set state of pick and place locations using the spheres
             pick.transform.position = pick_world;
-            end.transform.position = place_world;
+            place.transform.position = place_world;
 
             // Visualise moveit
             VisualiseMoveit();

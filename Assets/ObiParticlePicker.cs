@@ -35,10 +35,11 @@ namespace Obi
         public ParticlePickUnityEvent OnParticleReleased;
 
         public GameObject speech_obj;
+        public ObiControl obi_control;
 
         private Vector3 lastMousePos = Vector3.zero;
         private int pickedParticleIndex = -1;
-        private List<int> pickedParticleIndex_below = new List<int>();
+        private List<int> pickedParticleIndexs = new List<int>();
         private float pickedParticleDepth = 0;
         private double time_threshold = 500;
 
@@ -53,7 +54,11 @@ namespace Obi
         private int caseswitch = 0;
         private int dt = 35;
         double threshold_distance = 0.015f;
+        double threshold_distance_height = 0.05f;
         double threshold_distance_drop = 0.013f;
+        double threshold_height = -0.395f;
+        double threshold_retract_velocity = 2.0f;
+        float search_radius = 0.040F;   // Define a search radius to detect particles within.
 
         private float[] arrx = new float[50];
         private float[] arry = new float[50];
@@ -83,26 +88,28 @@ namespace Obi
         GameObject end_obj;
 
         public GameObject EE;
-        //private GameObject ee;
-        // Find the left finger game object
-        //ee = GameObject.Find("Node-EE_To_Cloth");
 
         void Awake()
         {
             lastMousePos = Input.mousePosition;
+            EE_pos = EE.transform.position;
             last_EE_pos = EE.transform.position;
             pick_obj = GameObject.Find("Pick");
             end_obj = GameObject.Find("End");
+            obi_control = actor.GetComponent<ObiControl>();
+            //obi_control.SaveState();
         }
 
         void LateUpdate()
         {
-            Move_by_robot();
-            //Theirs();
-            //Mine();
-            //Updater();
             lastMousePos = Input.mousePosition;
-            last_EE_pos = EE.transform.position;
+            if (!(EE_pos.magnitude == EE.transform.position.magnitude))
+            {
+                last_EE_pos = EE_pos;
+                EE_pos = EE.transform.position;
+            }
+            Move_by_robot();
+            
             if (hide_the_cloth == true)
             {
                 DateTime T = DateTime.Now;
@@ -130,123 +137,67 @@ namespace Obi
             if (solver != null)
             {
                 pickLocation = pick_obj.transform.position;
-                endLocation = end_obj.transform.position;                
+                endLocation = end_obj.transform.position;
 
                 if (executing)
                 {
-                    ///////////// Find the closest particle next to pick sphere:
-                    // Need to calculate the pick location first, not when robot is near the sphere
-                    // We still activate the attachment based on closeness, but not don't do the calculation at the same time.
-                    //if (found_particles_to_grab == false)
-                    //{
-                    //    found_particles_to_grab = true;
-                        
-                    //    double smallest = float.MaxValue;
-                    //    Vector3 sphere_pos = pick.transform.position;
-                    //    Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
-                    //    for (int i = 0; i < solver.renderablePositions.count; ++i)
-                    //    {
-                    //        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-                    //        double dx = sphere_pos.x - worldPos.x;
-                    //        double dz = sphere_pos.z - worldPos.z;
-                    //        double dist = Math.Sqrt(dx * dx + dz * dz);
-
-                    //        if (dist < smallest)
-                    //        {
-                    //            smallest = dist;
-                    //            pickedParticleIndex = i;
-                    //        }
-                    //    }
-
-                    //    ///////////// Find stacked particles if they exist - either above or below.
-                    //    float search_radius = 0.010F;   // Define a search radius to detect particles within.
-                    //                                    // Find particles that satisfy the radius constraint first, then check the height
-                    //    Vector3 particlePos = solver2World.MultiplyPoint3x4(solver.renderablePositions[pickedParticleIndex]);
-                    //    for (int i = 0; i < solver.renderablePositions.count; ++i)
-                    //    {
-                    //        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-                    //        double dx = particlePos.x - worldPos.x;
-                    //        double dz = particlePos.z - worldPos.z;
-                    //        double dist = Math.Sqrt(dx * dx + dz * dz);
-
-                    //        if (dist < search_radius)
-                    //        {
-                    //            pickedParticleIndex_below.Add(i);
-                    //        }
-                    //    }
-                    //}
-
-                    hide_the_cloth = false;
-                    Vector3 delta_start = last_EE_pos - pickLocation;
-                    if ((delta_start.magnitude <= threshold_distance) && !continue_grab_cloth)
+                    //Debug.Log("Executing");
+                    //Debug.Log(pickedParticleIndexs.Count);
+                    if (pickedParticleIndexs.Count == 0)
                     {
-                        // Start the grab
-                        solver.GetComponent<ObiSolver>().enabled = true;
-                        init_grab_cloth = true;
-                        continue_grab_cloth = true;
-                        executing = false;
-                        path_locked = false;
+                        Find_closest_particles();
+                    }
+                    // A particle has been found..
+                    if (pickedParticleIndexs.Count > 0)
+                    {
+                        found_particles_to_grab = false;
+                        //Debug.Log("picked particles");
+                        hide_the_cloth = false;
+                        Vector3 delta_start = EE_pos - pickLocation;
+                        Vector3 delta_EE = last_EE_pos - EE_pos;
+                        float dy = delta_EE.y * 1000f;
+                        //Debug.Log(dy);
+                        //if ((delta_start.magnitude <= threshold_distance) && !continue_grab_cloth)
+                        //if ((EE_pos.y < threshold_height) && !continue_grab_cloth)
+                        if ((dy < threshold_retract_velocity) && (Math.Abs(delta_start.y) < threshold_distance_height) && !continue_grab_cloth)
+                        {
+                            // Start the grab
+                            Debug.Log("Starting the grab...");
+                            if (OnParticlePicked != null)
+                            {
+                                Pick_particles();
+                                startTime = DateTime.Now;
+                            }
+                            solver.GetComponent<ObiSolver>().enabled = true;
+                            continue_grab_cloth = true;
+                            executing = false;
+                            path_locked = false;
+                        }
                     }
                 }
-
-                // Attach cloth to EE                
-                if (init_grab_cloth)
+                else if ((pickedParticleIndexs.Count > 0) && continue_grab_cloth)
                 {
-                    Debug.Log("Grab the cloth!");
-                    init_grab_cloth = false;
-                    //Debug.Log("Looking for Closest point on cloth");
-                    pickedParticleIndex = -1;
-
-                    // EE position
-                    EE_pos = EE.transform.position;
-                    //Debug.LogFormat("Left_EE position: {0}", EE_pos.ToString("F3"));
-
-                    // Init transform
-                    Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
-
-                    ///////////// Find the closest particle next to pick sphere:
-                    double smallest = float.MaxValue;
-                    for (int i = 0; i < solver.renderablePositions.count; ++i)
-                    {
-                        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-                        double dx = EE_pos.x - worldPos.x;
-                        double dz = EE_pos.z - worldPos.z;
-                        double dist = Math.Sqrt(dx * dx + dz * dz);
-
-                        if (dist < smallest)
-                        {
-                            smallest = dist;
-                            pickedParticleIndex = i;
-                        }
-                    }
-
-                    // Check that a particle has been found..
-                    if (pickedParticleIndex >= 0)
-                    {
-                        if (OnParticlePicked != null)
-                        {
-                            OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
-                            startTime = DateTime.Now;
-                        }
-                    }
-
-                } // End input check
-                else if (pickedParticleIndex >= 0)
-                {
-                    EE_pos = EE.transform.position;
                     //Debug.LogFormat("Particle index: {0}", pickedParticleIndex);
                     // Drag:
                     Vector3 EE_delta = EE_pos - last_EE_pos;
                     if (EE_delta.magnitude > 0.001f && OnParticleDragged != null)
                     {
-                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
+                        for (int i = 0; i < pickedParticleIndexs.Count; i++)
+                        {
+                            OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+                        }
+                        //OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[0], EE_pos));
                         //Debug.Log("Dragging");
                         //Debug.LogFormat("Left_EE position: {0}", EE_pos.ToString("F3"));
                     }
                     // Hold:
                     else if (OnParticleHeld != null)
                     {
-                        OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
+                        for (int i = 0; i < pickedParticleIndexs.Count; i++)
+                        {
+                            OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+                        }
+                        //OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[0], EE_pos));
                         //Debug.Log("Holding");
                     }
                     // Release:
@@ -268,29 +219,96 @@ namespace Obi
                         DateTime Timerrr = DateTime.Now;
                         double drop_elapsed = ((TimeSpan)(Timerrr - drop_timer)).TotalMilliseconds;
                         //Debug.Log(Timerrr);
-                        Debug.Log(drop_elapsed);
-                        Debug.Log(dd);
+                        //Debug.Log(drop_elapsed);
+                        //Debug.Log(dd);
                         if (dd > 0.1)
                         {
                             first_time_in = true;
                             hide_the_cloth = true;
-                            release_cloth();
+                            Release_cloth();
                             Debug.Log("Dropped because of distance requirement");
                         }
                         else if (drop_elapsed >= 1200)
                         {
                             first_time_in = true;
                             hide_the_cloth = true;
-                            release_cloth();
+                            Release_cloth();
                             Debug.Log("Dropped because of time constraint");
                         }
                     }
-                    EE_pos_last = EE_pos;
                 } // End drag event.
             }// End Solver check.
         }
 
-        public void release_cloth()
+        private void Find_closest_particles()
+        {
+            ///////////// Find the closest particles to pick sphere:
+            // Find attachment particles based on (x, z), ignore y values for now.
+            // Need to calculate the pick location first, not when robot is near the sphere.
+            // We still activate the attachment based on closeness, but not don't do the calculation at the same time.
+            if (found_particles_to_grab == false)
+            {
+                found_particles_to_grab = true;
+
+                Vector3 sphere_pos = pick_obj.transform.position;
+                Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
+                for (int i = 0; i < solver.renderablePositions.count; ++i)
+                {
+                    Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
+                    double dx = sphere_pos.x - worldPos.x;
+                    double dz = sphere_pos.z - worldPos.z;
+                    double dist = Math.Sqrt(dx * dx + dz * dz);
+
+                    if (dist <= search_radius)
+                    {
+                        pickedParticleIndexs.Add(i);
+                        Debug.Log(i);
+                    }
+                }
+            }
+        }
+
+        private void Find_clostest_particle()
+        {
+            /////////////// Find the closest particle next to pick sphere:
+            Debug.Log("Grab the cloth!");
+            init_grab_cloth = false;
+            EE_pos = EE.transform.position;
+            pickedParticleIndex = -1;
+            Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
+            double smallest = float.MaxValue;
+            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            {
+                Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
+                double dx = EE_pos.x - worldPos.x;
+                double dz = EE_pos.z - worldPos.z;
+                double dist = Math.Sqrt(dx * dx + dz * dz);
+
+                if (dist < smallest)
+                {
+                    smallest = dist;
+                    pickedParticleIndex = i;
+                }
+            }
+        }
+
+        private void Pick_particles()
+        {
+            for (int i = 0; i < pickedParticleIndexs.Count; i++)
+            {
+                OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+            }
+        }
+
+        private void Drag_particles()
+        {
+            for (int i = 0; i < pickedParticleIndexs.Count; i++)
+            {
+                OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+            }
+        }
+
+        public void Release_cloth()
         {
             // Stop showing cloth and stop the physics on cloth
             hide_cloth_timer = DateTime.Now;
@@ -298,11 +316,15 @@ namespace Obi
             continue_grab_cloth = false;
             executing = false;
 
-            if (OnParticleReleased != null)
+            for (int i = 0; i < pickedParticleIndexs.Count; i++)
             {
-                OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
+                OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
             }
-            pickedParticleIndex = -1;
+            //if (OnParticleReleased != null)
+            //{
+            //    OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
+            //}
+            pickedParticleIndexs = new List<int>();
         }
 
         void Move_by_robot_manual()
@@ -381,630 +403,5 @@ namespace Obi
                 } // End drag event.
             }// End Solver check.
         }
-
-        void Theirs()
-        {
-            if (solver != null)
-            {
-                // Click:
-                if (Input.GetMouseButtonDown(0))
-                {
-
-                    pickedParticleIndex = -1;
-
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                    float closestMu = float.MaxValue;
-                    float closestDistance = float.MaxValue;
-
-                    Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
-
-                    // Find the closest particle hit by the ray:
-                    for (int i = 0; i < solver.renderablePositions.count; ++i)
-                    {
-
-                        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-
-                        float mu;
-                        Vector3 projected = ObiUtils.ProjectPointLine(worldPos, ray.origin, ray.origin + ray.direction, out mu, false);
-                        float distanceToRay = Vector3.SqrMagnitude(worldPos - projected);
-
-                        // Disregard particles behind the camera:
-                        mu = Mathf.Max(0, mu);
-
-                        float radius = solver.principalRadii[i][0] * radiusScale;
-
-                        if (distanceToRay <= radius * radius && distanceToRay < closestDistance && mu < closestMu)
-                        {
-                            closestMu = mu;
-                            closestDistance = distanceToRay;
-                            pickedParticleIndex = i;
-                        }
-                    }
-                    print("---------------");
-                    print(solver.renderablePositions[pickedParticleIndex]);
-                    print(pickedParticleIndex);
-
-                    if (pickedParticleIndex >= 0)
-                    {
-                        pickedParticleDepth = Camera.main.transform.InverseTransformVector(solver2World.MultiplyPoint3x4(solver.renderablePositions[pickedParticleIndex]) - Camera.main.transform.position).z;
-
-                        if (OnParticlePicked != null)
-                        {
-                            Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, pickedParticleDepth));
-                            OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndex, worldPosition));
-                            print(worldPosition);
-                        }
-                    }
-
-                }
-                else if (pickedParticleIndex >= 0)
-                {
-
-                    // Drag:
-                    Vector3 mouseDelta = Input.mousePosition - lastMousePos;
-                    if (mouseDelta.magnitude > 0.01f && OnParticleDragged != null)
-                    {
-                        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, pickedParticleDepth));
-                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, worldPosition));
-                        Debug.Log("Dragging");
-                    }
-                    else if (OnParticleHeld != null)
-                    {
-                        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, pickedParticleDepth));
-                        OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndex, worldPosition));
-                        Debug.Log("Holding");
-                    }
-
-                    // Release:				
-                    if (Input.GetMouseButtonUp(0))
-                    {
-                        if (OnParticleReleased != null)
-                        {
-                            Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, pickedParticleDepth));
-                            OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, worldPosition));
-                        }
-                        pickedParticleIndex = -1;
-                    }
-                }
-            }
-        }
-        void Mine()
-        {
-            //print("RUnning...");
-            if (solver != null)
-            {
-                //print("RUnning...");
-                var pick = GameObject.Find("Pick").transform.position;
-                var end = GameObject.Find("End").transform.position;
-                pickLocation = new Vector3(pick.x, pick.y, pick.z);
-                endLocation = new Vector3(end.x, end.y + 1, end.z);
-                //endLocation = new Vector3(pick.x + 2, pick.y + 2, pick.z);
-
-                //var obj = GameObject.Find("SpeechInputHandler").GetComponent<VoiceCommands>();
-                //speech_obj.GetComponent<Voice>
-                //speech_obj.GetComponent<>
-
-
-                // Click:
-                if ((Input.GetKey("return")) && (pickedParticleIndex < 0))
-                {
-                    pickedParticleIndex = -1;
-
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                    float closestMu = float.MaxValue;
-                    float closestDistance = float.MaxValue;
-
-                    Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
-
-                    // Find the closest particle hit by the ray:                    
-                    print("Pick: ");
-                    print(pick);
-                    double smallest = float.MaxValue;
-                    for (int i = 0; i < solver.renderablePositions.count; ++i)
-                    {
-                        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-                        double dx = pick.x - worldPos.x;
-                        double dz = pick.z - worldPos.z;
-                        double dist = Math.Sqrt(dx * dx + dz * dz);
-
-                        if (dist < smallest)
-                        {
-                            smallest = dist;
-                            pickedParticleIndex = i;
-                        }
-                    }
-
-                    if (pickedParticleIndex >= 0)
-                    {
-                        if (OnParticlePicked != null)
-                        {
-                            trailingLocation = new Vector3(pick.x, pick.y, pick.z);
-
-                            OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndex, pickLocation));
-                            PathGen();
-
-                            startTime = DateTime.Now;
-                        }
-                    }
-                }
-                else if (pickedParticleIndex >= 0)
-                {
-                    counter++;
-                    int len = arrx.Length;
-                    // Implement switch case to move in y direction first...
-                    // 0 .... move up
-                    // 1 .... move across
-                    // 2 .... move down
-                    //if (counter >= 10)
-                    endTime = DateTime.Now;
-                    double elapsed = ((TimeSpan)(endTime - startTime)).TotalMilliseconds;
-                    if (elapsed > 25)
-                    {
-                        switch (caseswitch)
-                        {
-                            case 0: // Move up
-                                trailingLocation = new Vector3(pick.x, arry[steps], pick.z);
-                                break;
-                            case 1: // Move lateral
-                                trailingLocation = new Vector3(arrx[steps], arry[len - 1], arrz[steps]);
-                                //print("Lateral");
-                                break;
-                            case 2: // Move down
-                                trailingLocation = new Vector3(arrx[len - 1], arry[len - 1 - steps], arrz[len - 1]);
-                                //print("Down");
-                                break;
-                        }
-                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                        counter = 0;
-                        steps++;
-                        startTime = DateTime.Now;
-                    }
-                    else
-                    {
-                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                    }
-
-                    if (steps >= len - 1)
-                    {
-                        Vector3 trailingLocation = new Vector3(arrx[steps], arry[steps], arrz[steps]);
-                        OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                        //print("Moving");
-                        steps = 0;
-                        movement = 0;
-                        caseswitch++;
-                        if (caseswitch > 2)
-                        {
-                            caseswitch = 0;
-                            pickedParticleIndex = -1;
-                        }
-                    }
-
-                }
-            }
-        }
-
-        // Mine - callable
-        public void MoveInit()
-        {
-            if (solver != null)
-            {
-                print("Move initialised");
-                pick = GameObject.Find("Pick").transform.position;
-                end = GameObject.Find("End").transform.position;
-                pickLocation = new Vector3(pick.x, pick.y, pick.z);
-                endLocation = new Vector3(end.x, end.y + 0.3f, end.z);
-                //endLocation = new Vector3(pick.x + 2, pick.y + 2, pick.z);
-
-                // Click:
-                if (pickedParticleIndex < 0)
-                {
-                    pickedParticleIndex = -1;
-
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                    float closestMu = float.MaxValue;
-                    float closestDistance = float.MaxValue;
-
-                    Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
-
-                    // Find the closest particle hit by the ray:                    
-                    //print("Pick: ");
-                    //print(pick);
-                    double smallest = float.MaxValue;
-                    for (int i = 0; i < solver.renderablePositions.count; ++i)
-                    {
-                        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-                        double dx = pick.x - worldPos.x;
-                        double dz = pick.z - worldPos.z;
-                        double dist = Math.Sqrt(dx * dx + dz * dz);
-
-                        if (dist < smallest)
-                        {
-                            smallest = dist;
-                            pickedParticleIndex = i;
-                        }
-                    }
-
-                    if (pickedParticleIndex >= 0)
-                    {
-                        if (OnParticlePicked != null)
-                        {
-                            trailingLocation = new Vector3(pick.x, pick.y, pick.z);
-
-                            OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndex, pickLocation));
-                            PathGen();
-
-                            startTime = DateTime.Now;
-                        }
-                    }
-                }
-            }
-        }
-        public void Updater()
-        {
-            if (solver != null)
-            {
-                if (pickedParticleIndex >= 0)
-                {
-                    counter++;
-                    int len = arrx.Length;
-                    // Implement switch case to move in y direction first...
-                    // 0 .... move up
-                    // 1 .... move across
-                    // 2 .... move down
-                    //if (counter >= 10)
-                    endTime = DateTime.Now;
-                    double elapsed = ((TimeSpan)(endTime - startTime)).TotalMilliseconds;
-                    if (elapsed > dt)
-                    {
-                        switch (caseswitch)
-                        {
-                            case 0: // Move up
-                                trailingLocation = new Vector3(pick.x, arry[steps], pick.z);
-                                break;
-                            case 1: // Move lateral
-                                trailingLocation = new Vector3(arrx[steps], arry[len - 1], arrz[steps]);
-                                //print("Lateral");
-                                break;
-                            case 2: // Move down
-                                trailingLocation = new Vector3(arrx[len - 1], arry[len - 1 - steps], arrz[len - 1]);
-                                //print("Down");
-                                break;
-                        }
-                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                        counter = 0;
-                        steps++;
-                        startTime = DateTime.Now;
-                    }
-                    else
-                    {
-                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                    }
-
-                    if (steps >= len - 1)
-                    {
-                        Vector3 trailingLocation = new Vector3(arrx[steps], arry[steps], arrz[steps]);
-                        OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                        //print("Moving");
-                        steps = 0;
-                        movement = 0;
-                        caseswitch++;
-                        if (caseswitch > 2)
-                        {
-                            caseswitch = 0;
-                            pickedParticleIndex = -1;
-                        }
-                    }
-
-                }
-            }
-        }
-
-        public void MineCall()
-        {
-            //print("RUnning...");
-            if (solver != null)
-            {
-                print("RUnning...");
-                var pick = GameObject.Find("Pick").transform.position;
-                var end = GameObject.Find("End").transform.position;
-                pickLocation = new Vector3(pick.x, pick.y, pick.z);
-                endLocation = new Vector3(end.x, end.y + 1, end.z);
-                //endLocation = new Vector3(pick.x + 2, pick.y + 2, pick.z);
-
-                // Click:
-                if (pickedParticleIndex < 0)
-                {
-                    pickedParticleIndex = -1;
-
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                    float closestMu = float.MaxValue;
-                    float closestDistance = float.MaxValue;
-
-                    Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
-
-                    // Find the closest particle hit by the ray:                    
-                    //print("Pick: ");
-                    //print(pick);
-                    double smallest = float.MaxValue;
-                    for (int i = 0; i < solver.renderablePositions.count; ++i)
-                    {
-                        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-                        double dx = pick.x - worldPos.x;
-                        double dz = pick.z - worldPos.z;
-                        double dist = Math.Sqrt(dx * dx + dz * dz);
-
-                        if (dist < smallest)
-                        {
-                            smallest = dist;
-                            pickedParticleIndex = i;
-                        }
-                    }
-
-                    if (pickedParticleIndex >= 0)
-                    {
-                        if (OnParticlePicked != null)
-                        {
-                            trailingLocation = new Vector3(pick.x, pick.y, pick.z);
-
-                            OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndex, pickLocation));
-                            PathGen();
-
-                            startTime = DateTime.Now;
-                        }
-                    }
-                }
-                else if (pickedParticleIndex >= 0)
-                {
-                    counter++;
-                    int len = arrx.Length;
-                    // Implement switch case to move in y direction first...
-                    // 0 .... move up
-                    // 1 .... move across
-                    // 2 .... move down
-                    //if (counter >= 10)
-                    endTime = DateTime.Now;
-                    double elapsed = ((TimeSpan)(endTime - startTime)).TotalMilliseconds;
-                    if (elapsed > 25)
-                    {
-                        switch (caseswitch)
-                        {
-                            case 0: // Move up
-                                trailingLocation = new Vector3(pick.x, arry[steps], pick.z);
-                                break;
-                            case 1: // Move lateral
-                                trailingLocation = new Vector3(arrx[steps], arry[len - 1], arrz[steps]);
-                                print("Lateral");
-                                break;
-                            case 2: // Move down
-                                trailingLocation = new Vector3(arrx[len - 1], arry[len - 1 - steps], arrz[len - 1]);
-                                print("Down");
-                                break;
-                        }
-                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                        counter = 0;
-                        steps++;
-                        startTime = DateTime.Now;
-                    }
-                    else
-                    {
-                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                    }
-
-                    if (steps >= len - 1)
-                    {
-                        Vector3 trailingLocation = new Vector3(arrx[steps], arry[steps], arrz[steps]);
-                        OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, trailingLocation));
-                        //print("Moving");
-                        steps = 0;
-                        movement = 0;
-                        caseswitch++;
-                        if (caseswitch > 2)
-                        {
-                            caseswitch = 0;
-                            pickedParticleIndex = -1;
-                        }
-                    }
-
-                }
-            }
-        }
-
-        // Path generation function
-        void PathGen()
-        {
-            // sizes
-            float len = arrx.Length;
-            float x = endLocation.x - pickLocation.x;
-            float y = endLocation.y - pickLocation.y;
-            float z = endLocation.z - pickLocation.z;
-            // Steps
-            float xStep = x / len;
-            float yStep = y / len;
-            float zStep = z / len;
-
-            for (int i = 0; i < len; i++)
-            {
-                arrx[i] = pickLocation.x + xStep * (i + 1);
-                arry[i] = pickLocation.y + yStep * (i + 1);
-                arrz[i] = pickLocation.z + zStep * (i + 1);
-                //print(arry[i]);
-            }
-            print("Path Generated!");
-        }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//using System;
-//using System.Collections;
-//using System.Collections.Generic;
-//using UnityEngine;
-//using UnityEngine.Events;
-
-//namespace Obi
-//{
-
-//    public class ObiParticlePicker : MonoBehaviour
-//    {
-
-//        public class ParticlePickEventArgs : EventArgs
-//        {
-
-//            public int particleIndex;
-//            public Vector3 worldPosition;
-
-//            public ParticlePickEventArgs(int particleIndex, Vector3 worldPosition)
-//            {
-//                this.particleIndex = particleIndex;
-//                this.worldPosition = worldPosition;
-//            }
-//        }
-
-//        [Serializable]
-//        public class ParticlePickUnityEvent : UnityEvent<ParticlePickEventArgs> { }
-
-//        public ObiSolver solver;
-//        public float radiusScale = 1;
-
-//        public ParticlePickUnityEvent OnParticlePicked;
-//        public ParticlePickUnityEvent OnParticleHeld;
-//        public ParticlePickUnityEvent OnParticleDragged;
-//        public ParticlePickUnityEvent OnParticleReleased;
-
-//        private Vector3 lastMousePos = Vector3.zero;
-//        private int pickedParticleIndex = -1;
-//        private float pickedParticleDepth = 0;
-
-//        void Awake()
-//        {
-//            lastMousePos = Input.mousePosition;
-//        }
-
-//        void LateUpdate()
-//        {
-
-//            if (solver != null)
-//            {
-
-//                // Click:
-//                if (Input.GetMouseButtonDown(0))
-//                {
-
-//                    pickedParticleIndex = -1;
-
-//                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-//                    float closestMu = float.MaxValue;
-//                    float closestDistance = float.MaxValue;
-
-//                    Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
-
-//                    // Find the closest particle hit by the ray:
-//                    for (int i = 0; i < solver.renderablePositions.count; ++i)
-//                    {
-
-//                        Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
-
-//                        float mu;
-//                        Vector3 projected = ObiUtils.ProjectPointLine(worldPos, ray.origin, ray.origin + ray.direction, out mu, false);
-//                        float distanceToRay = Vector3.SqrMagnitude(worldPos - projected);
-
-//                        // Disregard particles behind the camera:
-//                        mu = Mathf.Max(0, mu);
-
-//                        float radius = solver.principalRadii[i][0] * radiusScale;
-
-//                        if (distanceToRay <= radius * radius && distanceToRay < closestDistance && mu < closestMu)
-//                        {
-//                            closestMu = mu;
-//                            closestDistance = distanceToRay;
-//                            pickedParticleIndex = i;
-//                        }
-//                    }
-
-//                    if (pickedParticleIndex >= 0)
-//                    {
-
-//                        pickedParticleDepth = Camera.main.transform.InverseTransformVector(solver2World.MultiplyPoint3x4(solver.renderablePositions[pickedParticleIndex]) - Camera.main.transform.position).z;
-
-//                        if (OnParticlePicked != null)
-//                        {
-//                            Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, pickedParticleDepth));
-//                            OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndex, worldPosition));
-//                        }
-//                    }
-
-//                }
-//                else if (pickedParticleIndex >= 0)
-//                {
-
-//                    // Drag:
-//                    Vector3 mouseDelta = Input.mousePosition - lastMousePos;
-//                    if (mouseDelta.magnitude > 0.01f && OnParticleDragged != null)
-//                    {
-
-//                        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, pickedParticleDepth));
-//                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndex, worldPosition));
-
-//                    }
-//                    else if (OnParticleHeld != null)
-//                    {
-
-//                        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, pickedParticleDepth));
-//                        OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndex, worldPosition));
-
-//                    }
-
-//                    // Release:				
-//                    if (Input.GetMouseButtonUp(0))
-//                    {
-
-//                        if (OnParticleReleased != null)
-//                        {
-//                            Vector3 worldPosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, pickedParticleDepth));
-//                            OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, worldPosition));
-//                        }
-
-//                        pickedParticleIndex = -1;
-
-//                    }
-//                }
-//            }
-
-//            lastMousePos = Input.mousePosition;
-//        }
-//    }
-//}
