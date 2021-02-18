@@ -357,6 +357,7 @@ public class ObiControl : MonoBehaviour
     public void LoadSavedState()
     {
         //Debug.Log("Loading previous state....");
+        //solver.GetComponent<ObiSolver>().enabled = true;
         int x = saved_state.Count;
         if (x > 0)
         {
@@ -384,6 +385,7 @@ public class ObiControl : MonoBehaviour
         {
             Debug.Log("Unable to load previous state.... Previous state does not exist?");
         }
+        //solver.GetComponent<ObiSolver>().enabled = false;
     }
 
     public void AddVisualMarkers()

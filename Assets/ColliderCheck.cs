@@ -16,16 +16,22 @@ public class ColliderCheck : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         Debug.Log("Trigger");
+        Vector3 p = sphere.transform.position;
+        //Debug.Log(p);
+        sphere.transform.position = new Vector3(0.46f,p.y,1.7f);
+        //sphere.GetComponent<Rigidbody>().AddForce(new Vector3(1,0,0));
     }
     private void OnTriggerStay(Collider other)
     {
-        //Debug.Log("Stag");
+        Debug.Log("Stay");
+        Vector3 p = sphere.transform.position;
+        sphere.transform.position = new Vector3(0.46f, p.y, 1.7f);
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         Debug.Log("Colliding");
-        Destroy(excluder);
+        Destroy(excluder); 
     }
 
     // Update is called once per frame

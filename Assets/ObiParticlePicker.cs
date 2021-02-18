@@ -9,15 +9,28 @@ namespace Obi
     public class ObiParticlePicker : MonoBehaviour
     {
 
+        //public class ParticlePickEventArgs : EventArgs
+        //{
+
+        //    public int particleIndex;
+        //    public Vector3 worldPosition;
+
+        //    public ParticlePickEventArgs(int particleIndex, Vector3 worldPosition)
+        //    {
+        //        this.particleIndex = particleIndex;
+        //        this.worldPosition = worldPosition;
+        //    }
+        //}
+
         public class ParticlePickEventArgs : EventArgs
         {
 
-            public int particleIndex;
+            public List<int> particleIndexs;
             public Vector3 worldPosition;
 
-            public ParticlePickEventArgs(int particleIndex, Vector3 worldPosition)
+            public ParticlePickEventArgs(List<int> particleIndexs, Vector3 worldPosition)
             {
-                this.particleIndex = particleIndex;
+                this.particleIndexs = particleIndexs;
                 this.worldPosition = worldPosition;
             }
         }
@@ -33,6 +46,11 @@ namespace Obi
         public ParticlePickUnityEvent OnParticleHeld;
         public ParticlePickUnityEvent OnParticleDragged;
         public ParticlePickUnityEvent OnParticleReleased;
+        //public List<ParticlePickUnityEvent> elist = new List<ParticlePickUnityEvent>();
+        //elist.Add(OnParticlePicked);
+        //elist.Add(OnParticleHeld);
+        //elist.Add(OnParticleDragged);
+        //elist.Add(OnParticleReleased);
 
         public GameObject speech_obj;
         public ObiControl obi_control;
@@ -41,14 +59,14 @@ namespace Obi
         GameObject end_obj;        
 
         private int pickedParticleIndex = -1;
-        private List<int> pickedParticleIndexs = new List<int>();
+        public List<int> pickedParticleIndexs = new List<int>();
 
         //double threshold_distance = 0.015f;
         double threshold_distance_height = 0.05f;
         double threshold_distance_drop = 0.013f;
         //double threshold_height = -0.395f;
         double threshold_retract_velocity = 2.0f;
-        float search_radius = 0.030F;   // Define a search radius to detect particles within.
+        float search_radius = 0.015F;   // Define a search radius to detect particles within.
 
         public Vector3 pick;
         public Vector3 end;
@@ -77,6 +95,14 @@ namespace Obi
             pick_obj = GameObject.Find("Pick");
             end_obj = GameObject.Find("End");
             obi_control = actor.GetComponent<ObiControl>();
+            //ParticlePickUnityEvent OnParticlePicked1 = new ParticlePickUnityEvent();
+            //ParticlePickUnityEvent OnParticleHeld1 = new ParticlePickUnityEvent();
+            //ParticlePickUnityEvent OnParticleDragged1 = new ParticlePickUnityEvent();
+            //ParticlePickUnityEvent OnParticleReleased1 = new ParticlePickUnityEvent();
+            //elist.Add(OnParticlePicked1);
+            //elist.Add(OnParticleHeld1);
+            //elist.Add(OnParticleDragged1);
+            //elist.Add(OnParticleReleased1);
             //obi_control.SaveState();
         }
 
@@ -95,9 +121,13 @@ namespace Obi
                 double elapsed = ((TimeSpan)(T - hide_cloth_timer)).TotalMilliseconds;
                 if ((elapsed > 1000) && (solver.GetComponent<ObiSolver>().enabled == true))
                 {
-                    //Debug.Log("Not Stopping physics!");
+                    Debug.Log("Not Stopping physics!");
                     //solver.GetComponent<ObiSolver>().enabled = false;
                     solver.GetComponent<ObiSolver>().enabled = true;
+                    //var xxx = solver.GetComponent<ObiSolver>().parameters;
+                    //Debug.Log(xxx.sleepThreshold);
+                    ////xxx.sleepThreshold = 1;
+                    //Debug.Log(xxx.sleepThreshold);
                     //Debug.Log("Stopping physics!");
                 }
            
@@ -142,11 +172,20 @@ namespace Obi
                         {
                             // Start the grab
                             Debug.Log("Starting the grab...");
+                            //solver.GetComponent<ObiSolver>().enabled = true;
+                            //var xxx = solver.GetComponent<ObiSolver>().parameters;
+                            //xxx.sleepThreshold = 0.0001f;
                             if (OnParticlePicked != null)
                             {
-                                Pick_particles();
+                                //for (int i = 0; i < pickedParticleIndexs.Count; i++)
+                                //{
+                                //    OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+                                //}
+                                OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
+                                //OnParticlePicked_1.Invoke(new ParticlePickEventArgs(150, EE_pos));
+                                //OnParticlePicked_1.Invoke(new ParticlePickEventArgs(190, EE_pos));
                             }
-                            solver.GetComponent<ObiSolver>().enabled = true;
+                            //solver.GetComponent<ObiSolver>().enabled = true;
                             continue_grab_cloth = true;
                             executing = false;
                             path_locked = false;
@@ -160,22 +199,28 @@ namespace Obi
                     Vector3 EE_delta = EE_pos - last_EE_pos;
                     if (EE_delta.magnitude > 0.001f && OnParticleDragged != null)
                     {
-                        for (int i = 0; i < pickedParticleIndexs.Count; i++)
-                        {
-                            OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
-                        }
-                        //OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[0], EE_pos));
+                        //for (int i = 0; i < pickedParticleIndexs.Count; i++)
+                        //{
+                        //    OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+                        //}
+
+                        OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
+                        //OnParticleDragged_1.Invoke(new ParticlePickEventArgs(150, EE_pos));
+                        //OnParticleDragged_1.Invoke(new ParticlePickEventArgs(190, EE_pos));
+
                         //Debug.Log("Dragging");
                         //Debug.LogFormat("Left_EE position: {0}", EE_pos.ToString("F3"));
                     }
                     // Hold:
                     else if (OnParticleHeld != null)
                     {
-                        for (int i = 0; i < pickedParticleIndexs.Count; i++)
-                        {
-                            OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
-                        }
-                        //OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[0], EE_pos));
+                        //for (int i = 0; i < pickedParticleIndexs.Count; i++)
+                        //{
+                        //OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+                        //}
+                        OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
+                        //OnParticleHeld_1.Invoke(new ParticlePickEventArgs(150, EE_pos));
+                        //OnParticleHeld_1.Invoke(new ParticlePickEventArgs(190, EE_pos));
                         //Debug.Log("Holding");
                     }
                     // Release:
@@ -273,17 +318,17 @@ namespace Obi
 
         private void Pick_particles()
         {
-            for (int i = 0; i < pickedParticleIndexs.Count; i++)
-            {
-                OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
-            }
+            //for (int i = 0; i < pickedParticleIndexs.Count; i++)
+            //{
+            //    OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+            //}
         }
 
         private void Drag_particles()
         {
             for (int i = 0; i < pickedParticleIndexs.Count; i++)
             {
-                OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+                OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
             }
         }
 
@@ -295,13 +340,14 @@ namespace Obi
             continue_grab_cloth = false;
             executing = false;
 
-            for (int i = 0; i < pickedParticleIndexs.Count; i++)
-            {
-                OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
-            }
+            //for (int i = 0; i < pickedParticleIndexs.Count; i++)
+            //{
+            //OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
+            //}
             //if (OnParticleReleased != null)
             //{
-            //    OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndex, EE_pos));
+            //OnParticleReleased_1.Invoke(new ParticlePickEventArgs(190, EE_pos));
+            OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
             //}
             pickedParticleIndexs = new List<int>();
         }
@@ -321,7 +367,7 @@ namespace Obi
             s.GetComponent<Renderer>().material.color = Color.blue;
         }
 
-        void Move_by_robot_manual()
+        /*void Move_by_robot_manual()
         {
             if (solver != null)
             {
@@ -395,6 +441,6 @@ namespace Obi
                     }
                 } // End drag event.
             }// End Solver check.
-        }
+        }*/
     }
 }
