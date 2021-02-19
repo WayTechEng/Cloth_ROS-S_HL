@@ -384,6 +384,7 @@ public class ObiControl : MonoBehaviour
         else
         {
             Debug.Log("Unable to load previous state.... Previous state does not exist?");
+            actor.ResetParticles();
         }
         //solver.GetComponent<ObiSolver>().enabled = false;
     }
