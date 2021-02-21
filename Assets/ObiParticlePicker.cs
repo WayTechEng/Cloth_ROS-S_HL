@@ -77,7 +77,6 @@ namespace Obi
         private Vector3 pickLocation;  // Mouse pick location
         private Vector3 endLocation;
 
-        public bool path_locked = false;
         public bool executing = false;
         private bool hide_the_cloth = false;
         private bool found_particles_to_grab = false;
@@ -121,7 +120,7 @@ namespace Obi
                 double elapsed = ((TimeSpan)(T - hide_cloth_timer)).TotalMilliseconds;
                 if ((elapsed > 1000) && (solver.GetComponent<ObiSolver>().enabled == true))
                 {
-                    Debug.Log("Not Stopping physics!");
+                    //Debug.Log("Not Stopping physics!");
                     //solver.GetComponent<ObiSolver>().enabled = false;
                     solver.GetComponent<ObiSolver>().enabled = true;
                     //var xxx = solver.GetComponent<ObiSolver>().parameters;
@@ -147,15 +146,17 @@ namespace Obi
             {
                 pickLocation = pick_obj.transform.position;
                 endLocation = end_obj.transform.position;
+                //Debug.Log(solver.GetComponent<ObiSolver>().enabled);
 
                 if (executing)
                 {
+                    //Debug.Log(solver.GetComponent<ObiSolver>().enabled);
                     //Debug.Log("Executing");
                     //Debug.Log(pickedParticleIndexs.Count);
-                    if (pickedParticleIndexs.Count == 0)
-                    {
-                        Find_closest_particles();
-                    }
+                    //if (pickedParticleIndexs.Count == 0)
+                    //{
+                    //    Find_closest_particles();
+                    //}
                     // A particle has been found..
                     if (pickedParticleIndexs.Count > 0)
                     {
@@ -177,18 +178,11 @@ namespace Obi
                             //xxx.sleepThreshold = 0.0001f;
                             if (OnParticlePicked != null)
                             {
-                                //for (int i = 0; i < pickedParticleIndexs.Count; i++)
-                                //{
-                                //    OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
-                                //}
                                 OnParticlePicked.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
-                                //OnParticlePicked_1.Invoke(new ParticlePickEventArgs(150, EE_pos));
-                                //OnParticlePicked_1.Invoke(new ParticlePickEventArgs(190, EE_pos));
                             }
                             //solver.GetComponent<ObiSolver>().enabled = true;
                             continue_grab_cloth = true;
                             executing = false;
-                            path_locked = false;
                         }
                     }
                 }
@@ -199,29 +193,12 @@ namespace Obi
                     Vector3 EE_delta = EE_pos - last_EE_pos;
                     if (EE_delta.magnitude > 0.001f && OnParticleDragged != null)
                     {
-                        //for (int i = 0; i < pickedParticleIndexs.Count; i++)
-                        //{
-                        //    OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
-                        //}
-
                         OnParticleDragged.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
-                        //OnParticleDragged_1.Invoke(new ParticlePickEventArgs(150, EE_pos));
-                        //OnParticleDragged_1.Invoke(new ParticlePickEventArgs(190, EE_pos));
-
-                        //Debug.Log("Dragging");
-                        //Debug.LogFormat("Left_EE position: {0}", EE_pos.ToString("F3"));
                     }
                     // Hold:
                     else if (OnParticleHeld != null)
                     {
-                        //for (int i = 0; i < pickedParticleIndexs.Count; i++)
-                        //{
-                        //OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
-                        //}
                         OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
-                        //OnParticleHeld_1.Invoke(new ParticlePickEventArgs(150, EE_pos));
-                        //OnParticleHeld_1.Invoke(new ParticlePickEventArgs(190, EE_pos));
-                        //Debug.Log("Holding");
                     }
                     // Release:
                     Vector3 delta_end = EE_pos - endLocation;
@@ -229,32 +206,22 @@ namespace Obi
                     
                     if (delta_end_xz.magnitude <= threshold_distance_drop)
                     {
-                        //Debug.Log(first_time_in);
                         if(first_time_in == true)
                         {
                             first_time_in = false;
                             drop_timer = DateTime.Now;
                             Debug.Log("First time in");
                         }
-                        //Debug.Log(first_time_in);
-                        //Debug.Log(drop_timer);
                         double dd = EE_pos.y - EE_pos_last.y;
                         DateTime Timerrr = DateTime.Now;
                         double drop_elapsed = ((TimeSpan)(Timerrr - drop_timer)).TotalMilliseconds;
-                        //Debug.Log(Timerrr);
-                        //Debug.Log(drop_elapsed);
-                        //Debug.Log(dd);
                         if (dd > 0.1)
                         {
-                            first_time_in = true;
-                            hide_the_cloth = true;
                             Release_cloth();
                             Debug.Log("Dropped because of distance requirement");
                         }
                         else if (drop_elapsed >= 1200)
                         {
-                            first_time_in = true;
-                            hide_the_cloth = true;
                             Release_cloth();
                             Debug.Log("Dropped because of time constraint");
                         }
@@ -263,12 +230,13 @@ namespace Obi
             }// End Solver check.
         }
 
-        private void Find_closest_particles()
+        public bool Find_closest_particles()
         {
             ///////////// Find the closest particles to pick sphere:
             // Find attachment particles based on (x, z), ignore y values for now.
             // Need to calculate the pick location first, not when robot is near the sphere.
             // We still activate the attachment based on closeness, but not don't do the calculation at the same time.
+            bool found = false;
             if (found_particles_to_grab == false)
             {
                 found_particles_to_grab = true;
@@ -287,9 +255,11 @@ namespace Obi
                         pickedParticleIndexs.Add(i);
                         //AddSphereToPoint(worldPos);
                         //Debug.Log(i);
+                        found = true;
                     }
                 }
             }
+            return found;
         }
 
         private void Find_clostest_particle()
@@ -336,19 +306,12 @@ namespace Obi
         {
             // Stop showing cloth and stop the physics on cloth
             hide_cloth_timer = DateTime.Now;
-
             continue_grab_cloth = false;
             executing = false;
+            first_time_in = true;
+            hide_the_cloth = true;
 
-            //for (int i = 0; i < pickedParticleIndexs.Count; i++)
-            //{
-            //OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndexs[i], EE_pos));
-            //}
-            //if (OnParticleReleased != null)
-            //{
-            //OnParticleReleased_1.Invoke(new ParticlePickEventArgs(190, EE_pos));
             OnParticleReleased.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
-            //}
             pickedParticleIndexs = new List<int>();
         }
 

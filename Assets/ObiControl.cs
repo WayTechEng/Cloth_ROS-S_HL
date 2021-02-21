@@ -140,27 +140,32 @@ public class ObiControl : MonoBehaviour
 
     public void VisualiseMoveit()
     {
-        //Debug.Log("setting points...");
-        //pick_list.Add(pick.transform.position);
-        //place_list.Add(place.transform.position);
-        
         var VC = Speech_obj.GetComponent<VoiceCommands>();
-
-        // If points alread created then clear them. Also reset all the particles
         VC.ClearPoints();
 
         // Send message to unity first!
-        VC.SetPointCustom(pick.transform.position, place.transform.position);
-        VC.LockPathMoveit();
         actor.GetComponent<ObiParticlePicker>().executing = true;
-        // Enabled solver physics and show the cloth
         solver.GetComponent<ObiSolver>().enabled = true;
         actor.GetComponent<ObiCloth>().enabled = true;
-        // Save the cloth state
-        SaveState();
-        // Reset particles
-        //actor.ResetParticles();
-        VC.ClearPoints();
+        bool found_particles = actor.GetComponent<ObiParticlePicker>().Find_closest_particles();
+        if (found_particles == true)
+        {
+            VC.SetPointCustom(pick.transform.position, place.transform.position);
+            VC.LockPathMoveit();
+            Debug.Log("Enabled the cloth");
+            // Save the cloth state
+            SaveState();
+            // Reset particles
+            //actor.ResetParticles();
+            VC.ClearPoints();
+        }
+        else
+        {
+            solver.GetComponent<ObiSolver>().enabled = false;
+            actor.GetComponent<ObiCloth>().enabled = false;
+            Debug.Log("Could not find particles near the pick location...");
+        }
+        
     }
 
     public void VisualiseMultiFold()
@@ -387,6 +392,9 @@ public class ObiControl : MonoBehaviour
             actor.ResetParticles();
         }
         //solver.GetComponent<ObiSolver>().enabled = false;
+
+        // Release cloth regardless
+        actor.GetComponent<ObiParticlePicker>().Release_cloth();
     }
 
     public void AddVisualMarkers()
