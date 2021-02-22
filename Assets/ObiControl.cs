@@ -93,11 +93,9 @@ public class ObiControl : MonoBehaviour
 
     public void Reset_all()
 	{
-		if (actor == null || !actor.isLoaded)
-		{
-			return;
-		}
-		actor.ResetParticles();
+        var VC = Speech_obj.GetComponent<VoiceCommands>();        
+        VC.ClearPoints();                
+        Reset_cloth();
         pick.SetActive(true);
         place.SetActive(true);
         pick.transform.position = pick_orig_pos;
@@ -112,6 +110,7 @@ public class ObiControl : MonoBehaviour
 
     public void ResetMarkers()
     {
+        Debug.Log("Hiding Markers");
         int x = pointer_list.Count;
         for (int i = 0; i < x; i++)
         {
@@ -128,8 +127,8 @@ public class ObiControl : MonoBehaviour
         actor.ResetParticles();
         Debug.Log("Reset Cloth!");
         solver.GetComponent<ObiSolver>().enabled = false;
-        actor.GetComponent<ObiCloth>().enabled = false;        
-        Debug.Log("Hiding cloth");      
+        actor.GetComponent<ObiCloth>().enabled = false;
+        Debug.Log("Hiding cloth");
 	}
 
 	public void Fold()
@@ -171,6 +170,8 @@ public class ObiControl : MonoBehaviour
     public void VisualiseMultiFold()
     {
         // Hide the cloth and spheres
+        actor.GetComponent<ObiParticlePicker>().Release_cloth();
+        actor.ResetParticles();
         solver.GetComponent<ObiSolver>().enabled = false;
         actor.GetComponent<ObiCloth>().enabled = false;
         pick.SetActive(false);
