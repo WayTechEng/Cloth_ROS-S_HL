@@ -13,24 +13,31 @@ using TMPro;
 public class ObiControl : MonoBehaviour
 {
 	ObiActor actor;
-	GameObject pick;
-	GameObject place;
-    public ObiActor reference_cloth;
     ObiActor reference_actor;
-    public GameObject robotFrame; 
+    public GameObject pick_1;
+	public GameObject place_1;
+	public GameObject pick_2;
+	public GameObject place_2;
+    public ObiActor reference_cloth;    
+    public GameObject robotFrame;
     public GameObject Speech_obj;
+    public GameObject surround;
     public Material see_through;
     //public GameObject computer_subscriber;
     public RosSharp.RosBridgeClient.unityComputerPoints computer_subscriber;
     public ObiSolver solver;
-    Vector3 pick_orig_pos;
-	Vector3 place_orig_pose;
+    private ObiParticlePicker pp;
+    private VoiceCommands VC;
     DateTime? start_time = null;
     private List<List<Vector3>> pick_place_list = new List<List<Vector3>>();
     private List<List<Vector4>> saved_state = new List<List<Vector4>>();
     private List<List<Vector3>> saved_sphere_positions = new List<List<Vector3>>();
     private List<List<float>> saved_masses = new List<List<float>>();
     private List<GameObject> pointer_list = new List<GameObject>();
+    private List<GameObject> spheres = new List<GameObject>();
+    private List<Vector3> spheres_orig_pos = new List<Vector3>();
+    public bool[] spheres_in = new bool[4];
+    private int which_pick = 0;
 
     // ROS Connector to communicate with ROS
     private GameObject ROSConnector;
@@ -38,35 +45,41 @@ public class ObiControl : MonoBehaviour
     private void Start()
     {
         ROSConnector = GameObject.Find("ROS Connector");
-        pick = GameObject.Find("Pick");
-        place = GameObject.Find("End");
         actor = GetComponent<ObiActor>();
-        
+        pp = actor.GetComponent<ObiParticlePicker>();
+        VC = Speech_obj.GetComponent<VoiceCommands>();
+
+        spheres.Add(pick_1);
+        spheres.Add(place_1);
+        spheres.Add(pick_2);
+        spheres.Add(place_2);
+
         pointer_list.Add(GameObject.Find("pick_marker1"));
         pointer_list.Add(GameObject.Find("place_marker1"));
         pointer_list.Add(GameObject.Find("pick_marker2"));
         pointer_list.Add(GameObject.Find("place_marker2"));
         pointer_list.Add(GameObject.Find("pick_marker3"));
         pointer_list.Add(GameObject.Find("place_marker3"));
-        ResetMarkers();
-
-        MaterialPropertyBlock props = new MaterialPropertyBlock();
-        props.SetColor("_Color", Color.clear);
-        //props.SetColor("")
-        //reference_cloth.GetComponent<Renderer>().SetPropertyBlock(props);
-        reference_cloth.GetComponent<MeshRenderer>().material = see_through;
-
-        // Save the initial cloth state
-        //init_bp = actor.GetComponent<ObiActorBlueprint>();
-
-        // Disable solver at the begginning
-        solver.GetComponent<ObiSolver>().enabled = false;
+        ResetMarkers();        
 
         computer_subscriber = ROSConnector.GetComponent<unityComputerPoints>();
+        //Get_cloth_state();
+        spheres_orig_pos.Add(pick_1.transform.position );
+        spheres_orig_pos.Add(place_1.transform.position);
+        spheres_orig_pos.Add(pick_2.transform.position );
+        spheres_orig_pos.Add(place_2.transform.position);
 
-        Get_cloth_state();
-        pick_orig_pos = pick.transform.position;
-        place_orig_pose = place.transform.position;
+        // Initial enables/disables
+        solver.GetComponent<ObiSolver>().enabled = false;
+        actor.GetComponent<ObiCloth>().enabled = false;
+        actor.GetComponent<LineRenderer>().enabled = false;
+        surround.SetActive(true);
+        pick_1.SetActive(true);
+        place_1.SetActive(true);
+        pick_2.SetActive(false);        
+        place_2.SetActive(false);
+        reference_cloth.enabled = true;
+        reference_cloth.GetComponent<MeshRenderer>().material = see_through;
     }
 
     public void Get_cloth_state()
@@ -91,15 +104,27 @@ public class ObiControl : MonoBehaviour
         solver.transform.SetPositionAndRotation(new_solver_position_wrt_world, current_solver_orientation_wrt_world);
     }
 
+    public void ResetPickPlace()
+    {
+        for(int i = 0; i < 2; i++)
+        {
+            spheres[i].SetActive(true);
+            spheres[i].transform.position = spheres_orig_pos[i];
+        }
+        for (int i = 2; i < 4; i++)
+        {
+            spheres[i].SetActive(false);
+            spheres[i].transform.position = spheres_orig_pos[i];
+        }
+        Debug.Log("Reset pick and place");
+    }
+
     public void Reset_all()
-	{
-        var VC = Speech_obj.GetComponent<VoiceCommands>();        
-        VC.ClearPoints();                
+	{      
+        VC.ClearPoints();
+        pp.Release_cloth();
         Reset_cloth();
-        pick.SetActive(true);
-        place.SetActive(true);
-        pick.transform.position = pick_orig_pos;
-		place.transform.position = place_orig_pose;
+        ResetPickPlace();
         pick_place_list = new List<List<Vector3>>();
         saved_state = new List<List<Vector4>>();
         saved_sphere_positions = new List<List<Vector3>>();
@@ -133,29 +158,42 @@ public class ObiControl : MonoBehaviour
 
 	public void Fold()
     {
-        var VC = Speech_obj.GetComponent<VoiceCommands>();
         VC.ExecuteCustom();
     }
 
     public void VisualiseMoveit()
     {
-        var VC = Speech_obj.GetComponent<VoiceCommands>();
+        if(pp.pickedParticleIndexs.Count > 0)
+        {
+            Debug.Log("Already executing a simulation!");
+            return;
+        }
         VC.ClearPoints();
+        if((spheres_in[0] == true) && (spheres_in[1] == true))
+        {
+            which_pick = 0;
+        }
+        else if ((spheres_in[2] == true) && (spheres_in[3] == true))
+        {
+            which_pick = 2;
+        }
+        else
+        {
+            Debug.Log("Not enough spheres are in the region - two are needed!");
+            return;
+        }
 
-        // Send message to unity first!
-        actor.GetComponent<ObiParticlePicker>().executing = true;
+        pp.pickLocation = spheres[which_pick].transform.position;
+        pp.placeLocation = spheres[which_pick + 1].transform.position;
+        pp.executing = true;
         solver.GetComponent<ObiSolver>().enabled = true;
         actor.GetComponent<ObiCloth>().enabled = true;
-        bool found_particles = actor.GetComponent<ObiParticlePicker>().Find_closest_particles();
+        bool found_particles = pp.Find_closest_particles(pp.pickLocation);
         if (found_particles == true)
         {
-            VC.SetPointCustom(pick.transform.position, place.transform.position);
+            VC.SetPointCustom(pp.pickLocation, pp.placeLocation);
             VC.LockPathMoveit();
-            Debug.Log("Enabled the cloth");
-            // Save the cloth state
-            SaveState();
-            // Reset particles
-            //actor.ResetParticles();
+            SaveState(spheres[which_pick], spheres[which_pick + 1]);
             VC.ClearPoints();
         }
         else
@@ -164,35 +202,39 @@ public class ObiControl : MonoBehaviour
             actor.GetComponent<ObiCloth>().enabled = false;
             Debug.Log("Could not find particles near the pick location...");
         }
+        Disable_spheres(which_pick);
+        if (which_pick == 0)
+        {
+            spheres[which_pick + 2].SetActive(true);
+            spheres[which_pick + 3].SetActive(true);
+        }
+        which_pick += 2;
         
     }
 
-    public void VisualiseMultiFold()
+    public void VisualiseMultiFold() 
     {
-        // Hide the cloth and spheres
-        actor.GetComponent<ObiParticlePicker>().Release_cloth();
-        actor.ResetParticles();
-        solver.GetComponent<ObiSolver>().enabled = false;
-        actor.GetComponent<ObiCloth>().enabled = false;
-        pick.SetActive(false);
-        place.SetActive(false);
-        start_time = DateTime.Now;
-        var VC = Speech_obj.GetComponent<VoiceCommands>();
-        if (pick_place_list.Count > 0)
+        if (pick_place_list.Count == 2)
         {
             Debug.Log("Performing Multi fold");
-            
+            pp.Release_cloth();
+            actor.ResetParticles();
+            solver.GetComponent<ObiSolver>().enabled = false;
+            actor.GetComponent<ObiCloth>().enabled = false;
+            start_time = DateTime.Now;
+
             VC.SetPointCustomMulti(pick_place_list);
             VC.LockPathKinect();
+            AddVisualMarkers();
         }
         else
         {
-            Debug.Log("No points selected...");
+            Debug.Log("Not enough points selected...");
         }
 
         // put arrows and text over the pick and place points
         VC.ClearPoints();
-        AddVisualMarkers();
+        
 
     }
 
@@ -201,11 +243,9 @@ public class ObiControl : MonoBehaviour
         Debug.Log("setting points...");
         // Set the pick and place
         reference_actor = reference_cloth.GetComponent<ObiActor>();
-        pick = GameObject.Find("Pick");
-        place = GameObject.Find("End");
 
-        var pickLocation = pick.transform.position;
-        var endLocation = place.transform.position;
+        var pickLocation = pick_1.transform.position;
+        var endLocation = place_1.transform.position;
         var VC = Speech_obj.GetComponent<VoiceCommands>();
 
         // Transform object to position relative to cloth frame
@@ -316,7 +356,7 @@ public class ObiControl : MonoBehaviour
         actor.GetComponent<ObiCloth>().enabled = false;
     }
 
-    public void SaveState()
+    public void SaveState(GameObject pick, GameObject place)
     {
         List<float> temp_mass_list = new List<float>();
         List<Vector4> temp_state_list = new List<Vector4>();
@@ -360,10 +400,36 @@ public class ObiControl : MonoBehaviour
         pick_place_list.Add(temp_list);
     }
 
+    public void Disable_spheres(int i)
+    {
+        ResetSpheresToStart(i);
+        spheres[i].SetActive(false);
+        spheres[i + 1].SetActive(false);
+    }
+    
+    public void ResetSpheresToStart(int i)
+    {
+        spheres[i].transform.position = spheres_orig_pos[i];
+        spheres[i + 1].transform.position = spheres_orig_pos[i + 1];
+        spheres_in[i] = false;
+        spheres_in[i + 1] = false;
+    }
+
     public void LoadSavedState()
     {
         //Debug.Log("Loading previous state....");
         //solver.GetComponent<ObiSolver>().enabled = true;
+        which_pick -= 2;
+        if(which_pick < 0)
+        {
+            which_pick = 0;
+        }
+        else if(which_pick == 0)
+        {
+            Disable_spheres(2);
+        }
+        GameObject pick = spheres[which_pick];
+        GameObject place = spheres[which_pick + 1];
         int x = saved_state.Count;
         if (x > 0)
         {
@@ -378,9 +444,10 @@ public class ObiControl : MonoBehaviour
             {
                 solver.invMasses[i] = saved_masses[x - 1][i];
             }
-            //Debug.Log(x);
+            pick.SetActive(true);
+            place.SetActive(true);
             pick.transform.position = saved_sphere_positions[x - 1][0];
-            place.transform.position = saved_sphere_positions[x - 1][1];
+            place.transform.position = saved_sphere_positions[x - 1][1];            
             saved_sphere_positions.RemoveAt(x - 1);
             pick_place_list.RemoveAt(x - 1);
             saved_state.RemoveAt(x - 1);
@@ -390,9 +457,9 @@ public class ObiControl : MonoBehaviour
         else
         {
             Debug.Log("Unable to load previous state.... Previous state does not exist?");
+            ResetSpheresToStart(which_pick);
             actor.ResetParticles();
         }
-        //solver.GetComponent<ObiSolver>().enabled = false;
 
         // Release cloth regardless
         actor.GetComponent<ObiParticlePicker>().Release_cloth();
@@ -415,11 +482,11 @@ public class ObiControl : MonoBehaviour
 
     private void Update()
 	{
-        int count = ROSConnector.GetComponent<ClothPoseSubscriber>().counter;
-        if (count > 0)
-        {
-            Set_cloth_state();
-        }
+        //int count = ROSConnector.GetComponent<ClothPoseSubscriber>().counter;
+        //if (count > 0)
+        //{
+        //    Set_cloth_state();
+        //}
 
         //if(start_time != null)
         //{
@@ -447,8 +514,8 @@ public class ObiControl : MonoBehaviour
             var pick_world = robotFrame.transform.TransformPoint(pick_rec);
             var place_world = robotFrame.transform.TransformPoint(place_rec);
             // Set state of pick and place locations using the spheres
-            pick.transform.position = pick_world;
-            place.transform.position = place_world;
+            pick_1.transform.position = pick_world;
+            place_1.transform.position = place_world;
 
             // Visualise moveit
             VisualiseMoveit();

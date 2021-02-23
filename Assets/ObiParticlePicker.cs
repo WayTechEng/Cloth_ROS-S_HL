@@ -46,17 +46,14 @@ namespace Obi
         public ParticlePickUnityEvent OnParticleHeld;
         public ParticlePickUnityEvent OnParticleDragged;
         public ParticlePickUnityEvent OnParticleReleased;
-        //public List<ParticlePickUnityEvent> elist = new List<ParticlePickUnityEvent>();
-        //elist.Add(OnParticlePicked);
-        //elist.Add(OnParticleHeld);
-        //elist.Add(OnParticleDragged);
-        //elist.Add(OnParticleReleased);
 
         public GameObject speech_obj;
         public ObiControl obi_control;
         public GameObject EE;
-        GameObject pick_obj;
-        GameObject end_obj;        
+        public GameObject pick_1_obj;
+        public GameObject place_1_obj;
+        public GameObject pick_2_obj;
+        public GameObject place_2_obj;
 
         private int pickedParticleIndex = -1;
         public List<int> pickedParticleIndexs = new List<int>();
@@ -68,14 +65,14 @@ namespace Obi
         double threshold_retract_velocity = 2.0f;
         float search_radius = 0.015F;   // Define a search radius to detect particles within.
 
-        public Vector3 pick;
-        public Vector3 end;
+        //public Vector3 pick;
+        //public Vector3 end;
+        public Vector3 pickLocation;
+        public Vector3 placeLocation;
 
         private Vector3 EE_pos;
         private Vector3 last_EE_pos = Vector3.zero;
-        private Vector3 EE_pos_last = Vector3.zero;
-        private Vector3 pickLocation;  // Mouse pick location
-        private Vector3 endLocation;
+        
 
         public bool executing = false;
         private bool hide_the_cloth = false;
@@ -91,18 +88,7 @@ namespace Obi
         {
             EE_pos = EE.transform.position;
             last_EE_pos = EE.transform.position;
-            pick_obj = GameObject.Find("Pick");
-            end_obj = GameObject.Find("End");
             obi_control = actor.GetComponent<ObiControl>();
-            //ParticlePickUnityEvent OnParticlePicked1 = new ParticlePickUnityEvent();
-            //ParticlePickUnityEvent OnParticleHeld1 = new ParticlePickUnityEvent();
-            //ParticlePickUnityEvent OnParticleDragged1 = new ParticlePickUnityEvent();
-            //ParticlePickUnityEvent OnParticleReleased1 = new ParticlePickUnityEvent();
-            //elist.Add(OnParticlePicked1);
-            //elist.Add(OnParticleHeld1);
-            //elist.Add(OnParticleDragged1);
-            //elist.Add(OnParticleReleased1);
-            //obi_control.SaveState();
         }
 
         void LateUpdate()
@@ -144,20 +130,10 @@ namespace Obi
         {
             if (solver != null)
             {
-                pickLocation = pick_obj.transform.position;
-                endLocation = end_obj.transform.position;
-                //Debug.Log(solver.GetComponent<ObiSolver>().enabled);
-
+                //pickLocation = pick_1_obj.transform.position;
+                //endLocation = place_1_obj.transform.position;
                 if (executing)
                 {
-                    //Debug.Log(solver.GetComponent<ObiSolver>().enabled);
-                    //Debug.Log("Executing");
-                    //Debug.Log(pickedParticleIndexs.Count);
-                    //if (pickedParticleIndexs.Count == 0)
-                    //{
-                    //    Find_closest_particles();
-                    //}
-                    // A particle has been found..
                     if (pickedParticleIndexs.Count > 0)
                     {
                         found_particles_to_grab = false;
@@ -201,7 +177,7 @@ namespace Obi
                         OnParticleHeld.Invoke(new ParticlePickEventArgs(pickedParticleIndexs, EE_pos));
                     }
                     // Release:
-                    Vector3 delta_end = EE_pos - endLocation;
+                    Vector3 delta_end = EE_pos - placeLocation;
                     Vector2 delta_end_xz = new Vector2(delta_end.x, delta_end.z);
                     
                     if (delta_end_xz.magnitude <= threshold_distance_drop)
@@ -212,15 +188,17 @@ namespace Obi
                             drop_timer = DateTime.Now;
                             Debug.Log("First time in");
                         }
-                        double dd = EE_pos.y - EE_pos_last.y;
+                        double dd = EE_pos.y - last_EE_pos.y;
                         DateTime Timerrr = DateTime.Now;
                         double drop_elapsed = ((TimeSpan)(Timerrr - drop_timer)).TotalMilliseconds;
-                        if (dd > 0.1)
+                        Debug.Log(dd);
+                        if (dd > 0.0015)
                         {
+                            Debug.LogFormat("Time taken to drop the cloth: {0}", drop_elapsed);
                             Release_cloth();
                             Debug.Log("Dropped because of distance requirement");
                         }
-                        else if (drop_elapsed >= 1200)
+                        else if (drop_elapsed >= 5000)
                         {
                             Release_cloth();
                             Debug.Log("Dropped because of time constraint");
@@ -230,7 +208,7 @@ namespace Obi
             }// End Solver check.
         }
 
-        public bool Find_closest_particles()
+        public bool Find_closest_particles(Vector3 sphere_pos)
         {
             ///////////// Find the closest particles to pick sphere:
             // Find attachment particles based on (x, z), ignore y values for now.
@@ -241,7 +219,6 @@ namespace Obi
             {
                 found_particles_to_grab = true;
 
-                Vector3 sphere_pos = pick_obj.transform.position;
                 Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
                 for (int i = 0; i < solver.renderablePositions.count; ++i)
                 {
