@@ -14,6 +14,7 @@ public class ObiControl : MonoBehaviour
 {
 	ObiActor actor;
     ObiActor reference_actor;
+    public bool ENABLE_SIMULATION;
     public GameObject pick_1;
 	public GameObject place_1;
 	public GameObject pick_2;
@@ -120,17 +121,28 @@ public class ObiControl : MonoBehaviour
     }
 
     public void Reset_all()
-	{      
-        VC.ClearPoints();
-        pp.Release_cloth();
-        Reset_cloth();
-        ResetPickPlace();
-        pick_place_list = new List<List<Vector3>>();
-        saved_state = new List<List<Vector4>>();
-        saved_sphere_positions = new List<List<Vector3>>();
-        saved_masses = new List<List<float>>();
-        ResetMarkers();
-		print("Reset All!");
+	{
+        if (ENABLE_SIMULATION)
+        {
+            VC.ClearPoints();
+            pp.Release_cloth();
+            Reset_cloth();
+            ResetPickPlace();
+            pick_place_list = new List<List<Vector3>>();
+            saved_state = new List<List<Vector4>>();
+            saved_sphere_positions = new List<List<Vector3>>();
+            saved_masses = new List<List<float>>();
+            ResetMarkers();
+            print("Reset All!");
+        }
+        else
+        {
+            VC.ClearPoints();
+            ResetPickPlace();
+            pick_place_list = new List<List<Vector3>>();
+            ResetMarkers();
+            print("Reset All! -- No Sim");
+        }
 	}
 
     public void ResetMarkers()
@@ -163,79 +175,110 @@ public class ObiControl : MonoBehaviour
 
     public void VisualiseMoveit()
     {
-        if(pp.pickedParticleIndexs.Count > 0)
+        if(ENABLE_SIMULATION)
         {
-            Debug.Log("Already executing a simulation!");
-            return;
-        }
-        VC.ClearPoints();
-        if((spheres_in[0] == true) && (spheres_in[1] == true))
-        {
-            which_pick = 0;
-        }
-        else if ((spheres_in[2] == true) && (spheres_in[3] == true))
-        {
-            which_pick = 2;
-        }
-        else
-        {
-            Debug.Log("Not enough spheres are in the region - two are needed!");
-            return;
-        }
-
-        pp.pickLocation = spheres[which_pick].transform.position;
-        pp.placeLocation = spheres[which_pick + 1].transform.position;
-        pp.executing = true;
-        solver.GetComponent<ObiSolver>().enabled = true;
-        actor.GetComponent<ObiCloth>().enabled = true;
-        bool found_particles = pp.Find_closest_particles(pp.pickLocation);
-        if (found_particles == true)
-        {
-            VC.SetPointCustom(pp.pickLocation, pp.placeLocation);
-            VC.LockPathMoveit();
-            SaveState(spheres[which_pick], spheres[which_pick + 1]);
+            if(pp.pickedParticleIndexs.Count > 0)
+            {
+                Debug.Log("Already executing a simulation!");
+                return;
+            }
             VC.ClearPoints();
+            if((spheres_in[0] == true) && (spheres_in[1] == true))
+            {
+                which_pick = 0;
+            }
+            else if ((spheres_in[2] == true) && (spheres_in[3] == true))
+            {
+                which_pick = 2;
+            }
+            else
+            {
+                Debug.Log("Not enough spheres are in the region - two are needed!");
+                return;
+            }
+
+            pp.pickLocation = spheres[which_pick].transform.position;
+            pp.placeLocation = spheres[which_pick + 1].transform.position;
+            pp.executing = true;
+            solver.GetComponent<ObiSolver>().enabled = true;
+            actor.GetComponent<ObiCloth>().enabled = true;
+            bool found_particles = pp.Find_closest_particles(pp.pickLocation);
+            if (found_particles == true)
+            {
+                VC.SetPointCustom(pp.pickLocation, pp.placeLocation);
+                VC.LockPathMoveit();
+                SaveState(spheres[which_pick], spheres[which_pick + 1]);
+                VC.ClearPoints();
+            }
+            else
+            {
+                solver.GetComponent<ObiSolver>().enabled = false;
+                actor.GetComponent<ObiCloth>().enabled = false;
+                Debug.Log("Could not find particles near the pick location...");
+            }
+            Disable_spheres(which_pick);
+            if (which_pick == 0)
+            {
+                spheres[which_pick + 2].SetActive(true);
+                spheres[which_pick + 3].SetActive(true);
+            }
+            which_pick += 2;
         }
-        else
-        {
-            solver.GetComponent<ObiSolver>().enabled = false;
-            actor.GetComponent<ObiCloth>().enabled = false;
-            Debug.Log("Could not find particles near the pick location...");
-        }
-        Disable_spheres(which_pick);
-        if (which_pick == 0)
-        {
-            spheres[which_pick + 2].SetActive(true);
-            spheres[which_pick + 3].SetActive(true);
-        }
-        which_pick += 2;
-        
     }
 
     public void VisualiseMultiFold() 
     {
-        if (pick_place_list.Count == 2)
+        if (ENABLE_SIMULATION)
         {
-            Debug.Log("Performing Multi fold");
-            pp.Release_cloth();
-            actor.ResetParticles();
-            solver.GetComponent<ObiSolver>().enabled = false;
-            actor.GetComponent<ObiCloth>().enabled = false;
-            start_time = DateTime.Now;
+            if (pick_place_list.Count == 2)
+            {
+                Debug.Log("Performing Multi fold");
+                pp.Release_cloth();
+                actor.ResetParticles();
+                solver.GetComponent<ObiSolver>().enabled = false;
+                actor.GetComponent<ObiCloth>().enabled = false;
+                start_time = DateTime.Now;
 
-            VC.SetPointCustomMulti(pick_place_list);
-            VC.LockPathKinect();
-            AddVisualMarkers();
+                VC.SetPointCustomMulti(pick_place_list);
+                VC.LockPathKinect();
+                AddVisualMarkers();
+            }
+            else
+            {
+                Debug.Log("Not enough points selected...");
+            }
+
+            // put arrows and text over the pick and place points
+            VC.ClearPoints();
         }
         else
         {
-            Debug.Log("Not enough points selected...");
+            bool valid = true;
+            for(int i = 0; i < spheres_in.Length; i++)
+            {
+                if(spheres_in[i] == false)
+                {
+                    valid = false;
+                }
+            }
+            if (valid)
+            {
+                SaveState(spheres[0], spheres[1]);
+                SaveState(spheres[2], spheres[3]);
+                VC.SetPointCustomMulti(pick_place_list);
+                VC.LockPathKinect();
+                AddVisualMarkers();
+                for(int i = 0; i < spheres.Count - 1; i+=2)
+                {
+                    Disable_spheres(i);
+                }
+                VC.ClearPoints();
+            }
+            else
+            {
+                Debug.Log("One or more spheres are in valid positions!");
+            }
         }
-
-        // put arrows and text over the pick and place points
-        VC.ClearPoints();
-        
-
     }
 
     public void Visualise()
@@ -358,41 +401,42 @@ public class ObiControl : MonoBehaviour
 
     public void SaveState(GameObject pick, GameObject place)
     {
-        List<float> temp_mass_list = new List<float>();
-        List<Vector4> temp_state_list = new List<Vector4>();
-        if (saved_state.Count == 0)
+        if (ENABLE_SIMULATION)
         {
-            Debug.Log("Saving initial state");            
-            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            List<float> temp_mass_list = new List<float>();
+            List<Vector4> temp_state_list = new List<Vector4>();
+            if (saved_state.Count == 0)
             {
-                //Vector3 Pos = solver.renderablePositions[i];
-                Vector4 Pos = solver.positions[i];
-                float m = solver.invMasses[i];
-                temp_mass_list.Add(m);
-                temp_state_list.Add(Pos);
+                Debug.Log("Saving initial state");
+                for (int i = 0; i < solver.renderablePositions.count; ++i)
+                {
+                    //Vector3 Pos = solver.renderablePositions[i];
+                    Vector4 Pos = solver.positions[i];
+                    float m = solver.invMasses[i];
+                    temp_mass_list.Add(m);
+                    temp_state_list.Add(Pos);
+                }
             }
-        }
-        else
-        {
-            Debug.Log("Saving state");
-            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            else
             {
-                //Vector3 Pos = solver.renderablePositions[i];
-                Vector4 Pos = solver.positions[i];
-                float m = solver.invMasses[i];
-                temp_mass_list.Add(m);
-                temp_state_list.Add(Pos);
+                Debug.Log("Saving state");
+                for (int i = 0; i < solver.renderablePositions.count; ++i)
+                {
+                    //Vector3 Pos = solver.renderablePositions[i];
+                    Vector4 Pos = solver.positions[i];
+                    float m = solver.invMasses[i];
+                    temp_mass_list.Add(m);
+                    temp_state_list.Add(Pos);
+                }
             }
+            saved_masses.Add(temp_mass_list);
+            saved_state.Add(temp_state_list);
+            // Also save the sphere positions
+            List<Vector3> temp_sphere_list = new List<Vector3>();
+            temp_sphere_list.Add(pick.transform.position);
+            temp_sphere_list.Add(place.transform.position);
+            saved_sphere_positions.Add(temp_sphere_list);
         }
-        saved_masses.Add(temp_mass_list);
-        saved_state.Add(temp_state_list);
-
-        // Also save the sphere positions
-        List<Vector3> temp_sphere_list = new List<Vector3>();
-        temp_sphere_list.Add(pick.transform.position);
-        temp_sphere_list.Add(place.transform.position);
-        saved_sphere_positions.Add(temp_sphere_list);
-
         // Save positions to list for RV controller
         List<Vector3> temp_list = new List<Vector3>();
         temp_list.Add(pick.transform.position);
@@ -417,52 +461,51 @@ public class ObiControl : MonoBehaviour
 
     public void LoadSavedState()
     {
-        //Debug.Log("Loading previous state....");
-        //solver.GetComponent<ObiSolver>().enabled = true;
-        which_pick -= 2;
-        if(which_pick < 0)
+        if (ENABLE_SIMULATION)
         {
-            which_pick = 0;
-        }
-        else if(which_pick == 0)
-        {
-            Disable_spheres(2);
-        }
-        GameObject pick = spheres[which_pick];
-        GameObject place = spheres[which_pick + 1];
-        int x = saved_state.Count;
-        if (x > 0)
-        {
-            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            which_pick -= 2;
+            if (which_pick < 0)
             {
-                solver.invMasses[i] = 0;
-                solver.positions[i] = saved_state[x - 1][i];
-                //solver.renderablePositions[i] = saved_state[i];
+                which_pick = 0;
             }
-            // re-apply the inverse masses
-            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            else if (which_pick == 0)
             {
-                solver.invMasses[i] = saved_masses[x - 1][i];
+                Disable_spheres(2);
             }
-            pick.SetActive(true);
-            place.SetActive(true);
-            pick.transform.position = saved_sphere_positions[x - 1][0];
-            place.transform.position = saved_sphere_positions[x - 1][1];            
-            saved_sphere_positions.RemoveAt(x - 1);
-            pick_place_list.RemoveAt(x - 1);
-            saved_state.RemoveAt(x - 1);
-            saved_masses.RemoveAt(x - 1);
-            Debug.Log("Sucessfully loaded previous state");
+            GameObject pick = spheres[which_pick];
+            GameObject place = spheres[which_pick + 1];
+            int x = saved_state.Count;
+            if (x > 0)
+            {
+                for (int i = 0; i < solver.renderablePositions.count; ++i)
+                {
+                    solver.invMasses[i] = 0;
+                    solver.positions[i] = saved_state[x - 1][i];
+                    //solver.renderablePositions[i] = saved_state[i];
+                }
+                // re-apply the inverse masses
+                for (int i = 0; i < solver.renderablePositions.count; ++i)
+                {
+                    solver.invMasses[i] = saved_masses[x - 1][i];
+                }
+                pick.SetActive(true);
+                place.SetActive(true);
+                pick.transform.position = saved_sphere_positions[x - 1][0];
+                place.transform.position = saved_sphere_positions[x - 1][1];
+                saved_sphere_positions.RemoveAt(x - 1);
+                pick_place_list.RemoveAt(x - 1);
+                saved_state.RemoveAt(x - 1);
+                saved_masses.RemoveAt(x - 1);
+                Debug.Log("Sucessfully loaded previous state");
+            }
+            else
+            {
+                Debug.Log("Unable to load previous state.... Previous state does not exist?");
+                ResetSpheresToStart(which_pick);
+                actor.ResetParticles();
+            }
+            actor.GetComponent<ObiParticlePicker>().Release_cloth();
         }
-        else
-        {
-            Debug.Log("Unable to load previous state.... Previous state does not exist?");
-            ResetSpheresToStart(which_pick);
-            actor.ResetParticles();
-        }
-
-        // Release cloth regardless
-        actor.GetComponent<ObiParticlePicker>().Release_cloth();
     }
 
     public void AddVisualMarkers()

@@ -26,7 +26,6 @@ using System.Linq;
 
 namespace Obi
 {
-
     /**
      * ObiSolver simulates particles and constraints, provided by a list of ObiActor. Particles belonging to different solvers won't interact with each other in any way.
      */

@@ -75,9 +75,7 @@ public class VoiceCommands : MonoBehaviour
         CoreServices.InputSystem?.FocusProvider?.SubscribeToPrimaryPointerChanged(OnPrimaryPointerChanged, true);
 
         // Set the default tag for all spawned setPoint prefab instances for easy removal later on.
-        spherePoint.tag = "clone";
-
-        
+        spherePoint.tag = "clone";        
     }
 
     // From Primary Pointer MRTK example, we need this to track the Primary pointer and place the pointerPos on it

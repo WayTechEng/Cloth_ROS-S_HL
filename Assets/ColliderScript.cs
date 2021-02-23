@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ColliderScript : MonoBehaviour
 {
-    public bool NO_SIMULATION;
+    
     public GameObject pick_1;
     public GameObject place_1;
     public GameObject pick_2;
@@ -31,7 +31,7 @@ public class ColliderScript : MonoBehaviour
             if(c.name == names[i])
             {
                 control.spheres_in[i] = true;
-                if (NO_SIMULATION)
+                if (!control.ENABLE_SIMULATION)
                 {
                     ActivateIfSpheresIn();
                 }
@@ -48,7 +48,7 @@ public class ColliderScript : MonoBehaviour
             if (c.name == names[i])
             {
                 control.spheres_in[i] = false;
-                if (NO_SIMULATION)
+                if (!control.ENABLE_SIMULATION)
                 {
                     ActivateIfSpheresIn();
                 }
