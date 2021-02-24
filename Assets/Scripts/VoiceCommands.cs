@@ -211,8 +211,9 @@ public class VoiceCommands : MonoBehaviour
         // Construct array of goalpoints
         foreach (var point in pathPoints)
         {
-            RosSharp.RosBridgeClient.MessageTypes.Geometry.Point position = GetGeometryPoint(point);
+            RosSharp.RosBridgeClient.MessageTypes.Geometry.Point position = GetGeometryPoint(point.Unity2Ros());
             goal_points.Add(new RosSharp.RosBridgeClient.MessageTypes.Geometry.Pose(position, quaternion));
+            Debug.LogFormat("Adding point at {0}", position.ToString());
         }
         var pointsObjects = GameObject.FindGameObjectsWithTag("clone");
         foreach (var point in pointsObjects)
@@ -317,8 +318,8 @@ public class VoiceCommands : MonoBehaviour
         pathPoints.Add(v_pick + EEF_Offset);
         pathPoints.Add(v_place + EEF_Offset);
 
-        Debug.LogFormat("Adding point {0} at {1}", 1, v_pick.ToString("F3"));
-        Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
+        //Debug.LogFormat("Adding point {0} at {1}", 1, v_pick.ToString("F3"));
+        //Debug.LogFormat("Adding point {0} at {1}", 4, v_place.ToString("F3"));
     }
 
     public void SetPointCustomMulti(List<List<Vector3>> list)
@@ -334,9 +335,9 @@ public class VoiceCommands : MonoBehaviour
             Vector3 v_place = ros_world_coord_frame.InverseTransformPoint(child_place.position);
             pathPoints.Add(v_pick + EEF_Offset);
             pathPoints.Add(v_place + EEF_Offset);
-            Debug.Log("----- PICK ------");
-            Debug.LogFormat("Adding point {0} at {1}", i, v_pick.ToString("F3"));
-            Debug.LogFormat("Adding point {0} at {1}", i+1, v_place.ToString("F3"));
+            //Debug.Log("----- Points: ------");
+            //Debug.LogFormat("Adding point {0} at {1}", i, v_pick.ToString("F3"));
+            //Debug.LogFormat("Adding point {0} at {1}", i+1, v_place.ToString("F3"));
         }
     }
    
