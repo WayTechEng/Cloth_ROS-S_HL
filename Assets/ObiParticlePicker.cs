@@ -191,7 +191,7 @@ namespace Obi
                         double dd = EE_pos.y - last_EE_pos.y;
                         DateTime Timerrr = DateTime.Now;
                         double drop_elapsed = ((TimeSpan)(Timerrr - drop_timer)).TotalMilliseconds;
-                        Debug.Log(dd);
+                        //Debug.Log(dd);
                         if (dd > 0.0015)
                         {
                             Debug.LogFormat("Time taken to drop the cloth: {0}", drop_elapsed);

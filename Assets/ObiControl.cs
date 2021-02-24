@@ -15,6 +15,7 @@ public class ObiControl : MonoBehaviour
 	ObiActor actor;
     ObiActor reference_actor;
     public bool ENABLE_SIMULATION;
+    public bool COMPUTER_SIMULATION;
     public GameObject pick_1;
 	public GameObject place_1;
 	public GameObject pick_2;
@@ -26,10 +27,12 @@ public class ObiControl : MonoBehaviour
     public Material see_through;
     //public GameObject computer_subscriber;
     public RosSharp.RosBridgeClient.unityComputerPoints computer_subscriber;
+    public RosSharp.RosBridgeClient.UnityStateSubscriber unity_state_subscriber;
     public ObiSolver solver;
     private ObiParticlePicker pp;
     private VoiceCommands VC;
     DateTime? start_time = null;
+    DateTime? collide_time = null;
     private List<List<Vector3>> pick_place_list = new List<List<Vector3>>();
     private List<List<Vector4>> saved_state = new List<List<Vector4>>();
     private List<List<Vector3>> saved_sphere_positions = new List<List<Vector3>>();
@@ -39,6 +42,7 @@ public class ObiControl : MonoBehaviour
     private List<Vector3> spheres_orig_pos = new List<Vector3>();
     public bool[] spheres_in = new bool[4];
     private int which_pick = 0;
+    private int computer_sim_counter = 0;
 
     // ROS Connector to communicate with ROS
     private GameObject ROSConnector;
@@ -508,6 +512,44 @@ public class ObiControl : MonoBehaviour
         }
     }
 
+    public void LoadSavedStateComputer()
+    {
+        which_pick -= 2;
+        if (which_pick < 0)
+        {
+            which_pick = 0;
+        }
+        else if (which_pick == 0)
+        {
+            Disable_spheres(2);
+        }
+        int x = saved_state.Count;
+        if (x > 0)
+        {
+            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            {
+                solver.invMasses[i] = 0;
+                solver.positions[i] = saved_state[x - 1][i];
+                //solver.renderablePositions[i] = saved_state[i];
+            }
+            // re-apply the inverse masses
+            for (int i = 0; i < solver.renderablePositions.count; ++i)
+            {
+                solver.invMasses[i] = saved_masses[x - 1][i];
+            }
+            Debug.Log("Sucessfully loaded previous state");
+            saved_state.RemoveAt(x - 1);
+            saved_masses.RemoveAt(x - 1);
+        }
+        else
+        {
+            Debug.Log("Unable to load previous state.... Previous state does not exist?");
+            ResetSpheresToStart(which_pick);
+            actor.ResetParticles();
+        }
+        actor.GetComponent<ObiParticlePicker>().Release_cloth();
+    }
+
     public void AddVisualMarkers()
     {
         int x = pick_place_list.Count * 2;
@@ -521,6 +563,13 @@ public class ObiControl : MonoBehaviour
             pointer_list[i + 1].transform.position = pick_place_list[c][1];
             c++;
         }
+    }
+
+    public bool InWorkSpaceCheck(int a, int b)
+    {        
+        Debug.LogFormat("1: {0},   2: {1}", spheres_in[a], spheres_in[b]);
+        bool result = spheres_in[a] && spheres_in[b];
+        return result;
     }
 
     private void Update()
@@ -546,27 +595,100 @@ public class ObiControl : MonoBehaviour
         //{
         //    //Debug.Log("Start time is null");
         //}
-
-        bool do_computer_sim = computer_subscriber.message_received;
-        if (do_computer_sim == true)
+        if (COMPUTER_SIMULATION)
         {
-            Debug.Log("Simuating...");
-            // Positions recieved are on the x-z plane at y=0
-            var pick_rec = computer_subscriber.pick;
-            var place_rec = computer_subscriber.place;
-            var pick_world = robotFrame.transform.TransformPoint(pick_rec);
-            var place_world = robotFrame.transform.TransformPoint(place_rec);
-            // Set state of pick and place locations using the spheres
-            pick_1.transform.position = pick_world;
-            place_1.transform.position = place_world;
+            if (unity_state_subscriber.reset_computer_sim_counter == true)
+            {
+                computer_sim_counter = 0;
+                unity_state_subscriber.reset_computer_sim_counter = false;
+            }
+            else if (unity_state_subscriber.fold == true)
+            {
+                Reset_all();
+                computer_sim_counter = 0;
+                unity_state_subscriber.fold = false;
+                unity_state_subscriber.reset_computer_sim_counter = false;
+            }
+            else if (unity_state_subscriber.undo == true)
+            {
+                computer_sim_counter--;
+                unity_state_subscriber.undo = false;
+                LoadSavedStateComputer();
+                if (computer_sim_counter < 0)
+                {
+                    computer_sim_counter = 0;
+                }
+            }
 
-            // Visualise moveit
-            VisualiseMoveit();
+            if (computer_subscriber.message_received == true)
+            {
+                computer_subscriber.message_received = false;                
+                // Positions recieved are on the x-z plane at y=0
+                var pick_rec = computer_subscriber.pick;
+                var place_rec = computer_subscriber.place;
+                var pick_world = robotFrame.transform.TransformPoint(pick_rec);
+                var place_world = robotFrame.transform.TransformPoint(place_rec);
+                pick_world.y = pick_1.transform.position.y;
+                place_world.y = pick_1.transform.position.y;
+                // Set state of pick and place locations using the spheres
+                if (computer_sim_counter == 0)
+                {
+                    collide_time = DateTime.Now;
+                    spheres[0].SetActive(true);
+                    spheres[1].SetActive(true);
+                    spheres_in[2] = false;
+                    spheres_in[3] = false;
+                    pick_1.transform.position = pick_world;
+                    place_1.transform.position = place_world;
 
-            // Reset the flag
-            computer_subscriber.message_received = false;
+                }
+                else if (computer_sim_counter == 1)
+                {
+                    collide_time = DateTime.Now;
+                    spheres[2].SetActive(true);
+                    spheres[3].SetActive(true);
+                    spheres_in[0] = false;
+                    spheres_in[1] = false;
+                    pick_2.transform.position = pick_world;
+                    place_2.transform.position = place_world;
+                }
+                else
+                {
+                    Debug.Log("Only two simuations allowed -- you must reset now!");
+                    return;
+                }
+                Debug.Log("Simuating...");
+            }
+            // Wait for collisions to occur
+            if(collide_time != null)
+            {
+                double t = ((TimeSpan)(DateTime.Now - collide_time)).TotalMilliseconds;
+                if(t > 500)
+                {
+                    collide_time = null;
+                    bool check = false;
+                    if (computer_sim_counter == 0)
+                    {
+                        check = InWorkSpaceCheck(0, 1);
+                        computer_sim_counter++;
+                    }
+                    else if (computer_sim_counter == 1)
+                    {
+                        check = InWorkSpaceCheck(2, 3);
+                        computer_sim_counter++;
+                    }
+
+                    if (check)
+                    {
+                        VisualiseMoveit();
+                    }
+                    else
+                    {
+                        Debug.Log("Invalid points!");
+                    }
+                }
+            }
         }
-
 
     }
 }
