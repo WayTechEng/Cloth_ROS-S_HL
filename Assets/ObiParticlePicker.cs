@@ -59,8 +59,8 @@ namespace Obi
         public List<int> pickedParticleIndexs = new List<int>();
 
         //double threshold_distance = 0.015f;
-        double threshold_distance_height = 0.05f;
-        double threshold_distance_drop = 0.013f;
+        double threshold_distance_height = 0.05f;  // closeness before we can start grabbing the cloth
+        double threshold_distance_drop = 0.013f;   // radial distance off EE to the drop position
         //double threshold_height = -0.395f;
         double threshold_retract_velocity = 2.0f;
         float search_radius = 0.015F;   // Define a search radius to detect particles within.
