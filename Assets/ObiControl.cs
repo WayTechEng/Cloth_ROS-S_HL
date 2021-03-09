@@ -42,7 +42,7 @@ public class ObiControl : MonoBehaviour
     private List<Vector3> spheres_orig_pos = new List<Vector3>();
     public bool[] spheres_in = new bool[4];
     private int which_pick = 0;
-    private int computer_sim_counter = 0;
+    private int sim_number = 0;
 
     // ROS Connector to communicate with ROS
     private GameObject ROSConnector;
@@ -50,6 +50,8 @@ public class ObiControl : MonoBehaviour
     private void Start()
     {
         ROSConnector = GameObject.Find("ROS Connector");
+        var grid = GameObject.Find("Workspace");
+        grid.GetComponent<MeshRenderer>().enabled = false;
         actor = GetComponent<ObiActor>();
         pp = actor.GetComponent<ObiParticlePicker>();
         VC = Speech_obj.GetComponent<VoiceCommands>();
@@ -138,6 +140,7 @@ public class ObiControl : MonoBehaviour
             saved_masses = new List<List<float>>();
             ResetMarkers();
             print("Reset All!");
+            sim_number = 0;
         }
         else
         {
@@ -200,12 +203,19 @@ public class ObiControl : MonoBehaviour
                 Debug.Log("Not enough spheres are in the region - two are needed!");
                 return;
             }
-
+            solver.GetComponent<ObiSolver>().enabled = true;
+            actor.GetComponent<ObiCloth>().enabled = true;
+            Debug.Log(solver.GetComponent<ObiSolver>().enabled);
+            Debug.Log(actor.GetComponent<ObiCloth>().enabled);
+            
             pp.pickLocation = spheres[which_pick].transform.position;
             pp.placeLocation = spheres[which_pick + 1].transform.position;
             pp.executing = true;
-            solver.GetComponent<ObiSolver>().enabled = true;
-            actor.GetComponent<ObiCloth>().enabled = true;
+            Debug.Log(pp.pickLocation);
+            for (int i = 0; i < 10000; i++)
+            {
+                int a = 1;
+            }            
             bool found_particles = pp.Find_closest_particles(pp.pickLocation);
             if (found_particles == true)
             {
@@ -216,8 +226,12 @@ public class ObiControl : MonoBehaviour
             }
             else
             {
-                solver.GetComponent<ObiSolver>().enabled = false;
-                actor.GetComponent<ObiCloth>().enabled = false;
+                if (!COMPUTER_SIMULATION)
+                {
+                    solver.GetComponent<ObiSolver>().enabled = false;
+                    actor.GetComponent<ObiCloth>().enabled = false;
+                }
+                sim_number--;                
                 Debug.Log("Could not find particles near the pick location...");
             }
             Disable_spheres(which_pick);
@@ -597,27 +611,16 @@ public class ObiControl : MonoBehaviour
         //}
         if (COMPUTER_SIMULATION)
         {
-            if (unity_state_subscriber.reset_computer_sim_counter == true)
+            if (unity_state_subscriber.fold == true)
             {
-                computer_sim_counter = 0;
-                unity_state_subscriber.reset_computer_sim_counter = false;
-            }
-            else if (unity_state_subscriber.fold == true)
-            {
-                Reset_all();
-                computer_sim_counter = 0;
+                Reset_all();                
                 unity_state_subscriber.fold = false;
-                unity_state_subscriber.reset_computer_sim_counter = false;
             }
             else if (unity_state_subscriber.undo == true)
             {
-                computer_sim_counter--;
                 unity_state_subscriber.undo = false;
+                sim_number--;
                 LoadSavedStateComputer();
-                if (computer_sim_counter < 0)
-                {
-                    computer_sim_counter = 0;
-                }
             }
 
             if (computer_subscriber.message_received == true)
@@ -631,7 +634,7 @@ public class ObiControl : MonoBehaviour
                 pick_world.y = pick_1.transform.position.y;
                 place_world.y = pick_1.transform.position.y;
                 // Set state of pick and place locations using the spheres
-                if (computer_sim_counter == 0)
+                if ((computer_subscriber.sim_number == 1) && (sim_number < 1))
                 {
                     collide_time = DateTime.Now;
                     spheres[0].SetActive(true);
@@ -640,9 +643,9 @@ public class ObiControl : MonoBehaviour
                     spheres_in[3] = false;
                     pick_1.transform.position = pick_world;
                     place_1.transform.position = place_world;
-
+                    sim_number = 1;
                 }
-                else if (computer_sim_counter == 1)
+                else if ((computer_subscriber.sim_number == 2) && (sim_number == 1))
                 {
                     collide_time = DateTime.Now;
                     spheres[2].SetActive(true);
@@ -651,10 +654,14 @@ public class ObiControl : MonoBehaviour
                     spheres_in[1] = false;
                     pick_2.transform.position = pick_world;
                     place_2.transform.position = place_world;
+                    sim_number = 2;
                 }
                 else
                 {
-                    Debug.Log("Only two simuations allowed -- you must reset now!");
+                    Debug.Log("Incorrect sequence!");
+                    Debug.Log(computer_subscriber.sim_number);
+                    Debug.Log(sim_number);
+                    Debug.Log("");
                     return;
                 }
                 Debug.Log("Simuating...");
@@ -667,15 +674,13 @@ public class ObiControl : MonoBehaviour
                 {
                     collide_time = null;
                     bool check = false;
-                    if (computer_sim_counter == 0)
+                    if (computer_subscriber.sim_number == 1)
                     {
                         check = InWorkSpaceCheck(0, 1);
-                        computer_sim_counter++;
                     }
-                    else if (computer_sim_counter == 1)
+                    else if (computer_subscriber.sim_number == 2)
                     {
                         check = InWorkSpaceCheck(2, 3);
-                        computer_sim_counter++;
                     }
 
                     if (check)

@@ -226,13 +226,17 @@ namespace Obi
                     double dx = sphere_pos.x - worldPos.x;
                     double dz = sphere_pos.z - worldPos.z;
                     double dist = Math.Sqrt(dx * dx + dz * dz);
-
+                    //if (dist <= search_radius*3)
+                    //{
+                        //Debug.Log(dist);
+                    //}
                     if (dist <= search_radius)
                     {
                         pickedParticleIndexs.Add(i);
                         //AddSphereToPoint(worldPos);
                         //Debug.Log(i);
                         found = true;
+                        
                     }
                 }
             }

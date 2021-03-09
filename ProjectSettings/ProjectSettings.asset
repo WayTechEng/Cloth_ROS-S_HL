@@ -590,7 +590,7 @@ PlayerSettings:
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
   metroPackageName: ClothNoDemos
-  metroPackageVersion: 1.0.34.0
+  metroPackageVersion: 1.0.39.0
   metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: DefaultCompany

@@ -13,6 +13,7 @@ namespace RosSharp.RosBridgeClient
         public GameObject robotFrame;
         public Vector3 pick;
         public Vector3 place;
+        public double sim_number = 0;
 
         public bool message_received = false;
 
@@ -29,6 +30,7 @@ namespace RosSharp.RosBridgeClient
 
             pick = new Vector3((float)-pick_rec.y, 0.01F, (float)pick_rec.x);
             place = new Vector3((float)-place_rec.y, 0.01F, (float)place_rec.x);
+            sim_number = message.poses[0].orientation.x;
             //Debug.LogFormat("{0}", pick.ToString("F3"));
 
             message_received = true;
