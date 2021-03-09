@@ -25,6 +25,7 @@ namespace RosSharp.RosBridgeClient
             // unity_robot.z = robot.x 
             // unity_robot.x = -robot.y
             Debug.Log("Received message");
+            Debug.Log(message);
             var pick_rec = message.poses[0].position;
             var place_rec = message.poses[1].position;
 

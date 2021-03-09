@@ -216,10 +216,9 @@ namespace Obi
             // We still activate the attachment based on closeness, but not don't do the calculation at the same time.
             bool found = false;
             if (found_particles_to_grab == false)
-            {
-                found_particles_to_grab = true;
-
+            {   
                 Matrix4x4 solver2World = solver.transform.localToWorldMatrix;
+                int count = 0;
                 for (int i = 0; i < solver.renderablePositions.count; ++i)
                 {
                     Vector3 worldPos = solver2World.MultiplyPoint3x4(solver.renderablePositions[i]);
@@ -228,15 +227,16 @@ namespace Obi
                     double dist = Math.Sqrt(dx * dx + dz * dz);
                     //if (dist <= search_radius*3)
                     //{
-                        //Debug.Log(dist);
+                    //Debug.Log(dist);
                     //}
+                    count++;
                     if (dist <= search_radius)
                     {
                         pickedParticleIndexs.Add(i);
                         //AddSphereToPoint(worldPos);
                         //Debug.Log(i);
                         found = true;
-                        
+                        found_particles_to_grab = true;
                     }
                 }
             }

@@ -234,7 +234,10 @@ public class ObiControl : MonoBehaviour
                 sim_number--;                
                 Debug.Log("Could not find particles near the pick location...");
             }
-            Disable_spheres(which_pick);
+            if (!COMPUTER_SIMULATION)
+            {
+                Disable_spheres(which_pick);
+            }
             if (which_pick == 0)
             {
                 spheres[which_pick + 2].SetActive(true);
