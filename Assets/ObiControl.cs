@@ -22,8 +22,10 @@ public class ObiControl : MonoBehaviour
 	public GameObject place_2;
     public ObiActor reference_cloth;    
     public GameObject robotFrame;
+    public GameObject robotLink0;
     public GameObject Speech_obj;
     public GameObject surround;
+    GameObject FOLD_TXT;
     public Material see_through;
     //public GameObject computer_subscriber;
     public RosSharp.RosBridgeClient.unityComputerPoints computer_subscriber;
@@ -43,6 +45,7 @@ public class ObiControl : MonoBehaviour
     public bool[] spheres_in = new bool[4];
     private int which_pick = 0;
     private int sim_number = 0;
+    private bool hide_the_robot = false;
 
     // ROS Connector to communicate with ROS
     private GameObject ROSConnector;
@@ -50,8 +53,9 @@ public class ObiControl : MonoBehaviour
     private void Start()
     {
         ROSConnector = GameObject.Find("ROS Connector");
+        FOLD_TXT = GameObject.Find("FOLD_TXT");
         var grid = GameObject.Find("Workspace");
-        grid.GetComponent<MeshRenderer>().enabled = false;
+        
         actor = GetComponent<ObiActor>();
         pp = actor.GetComponent<ObiParticlePicker>();
         VC = Speech_obj.GetComponent<VoiceCommands>();
@@ -87,6 +91,11 @@ public class ObiControl : MonoBehaviour
         place_2.SetActive(false);
         reference_cloth.enabled = true;
         reference_cloth.GetComponent<MeshRenderer>().material = see_through;
+
+        // Disables and gray text
+        grid.GetComponent<MeshRenderer>().enabled = false;
+        FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(125, 125, 125, 255);
+        //FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(255, 255, 255, 255);
     }
 
     public void Get_cloth_state()
@@ -130,6 +139,8 @@ public class ObiControl : MonoBehaviour
 	{
         if (ENABLE_SIMULATION)
         {
+            robotLink0.SetActive(true);
+            FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(125, 125, 125, 255);
             VC.ClearPoints();
             pp.Release_cloth();
             Reset_cloth();
@@ -253,6 +264,9 @@ public class ObiControl : MonoBehaviour
         {
             if (pick_place_list.Count == 2)
             {
+                robotLink0.SetActive(false);
+                hide_the_robot = true;
+                FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(125, 125, 125, 255);
                 Debug.Log("Performing Multi fold");
                 pp.Release_cloth();
                 actor.ResetParticles();
@@ -484,6 +498,7 @@ public class ObiControl : MonoBehaviour
     {
         if (ENABLE_SIMULATION)
         {
+            FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(125, 125, 125, 255);
             which_pick -= 2;
             if (which_pick < 0)
             {
@@ -612,6 +627,31 @@ public class ObiControl : MonoBehaviour
         //{
         //    //Debug.Log("Start time is null");
         //}
+        if(pick_place_list.Count == 2)
+        {
+            FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(255, 255, 255, 255);
+        }
+        if(!ENABLE_SIMULATION)
+        {
+            bool valid = true;
+            for (int i = 0; i < spheres_in.Length; i++)
+            {
+                if (spheres_in[i] == false)
+                {
+                    valid = false;
+                }
+            }
+            if (valid == true)
+            {
+                FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(255, 255, 255, 255);
+            }
+            else
+            {
+                FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(125, 125, 125, 255);
+            }
+        }
+
+
         if (COMPUTER_SIMULATION)
         {
             if (unity_state_subscriber.fold == true)
