@@ -234,6 +234,16 @@ public class ObiControl : MonoBehaviour
                 VC.LockPathMoveit();
                 SaveState(spheres[which_pick], spheres[which_pick + 1]);
                 VC.ClearPoints();
+                if (!COMPUTER_SIMULATION)
+                {
+                    Disable_spheres(which_pick);
+                }
+                if (which_pick == 0)
+                {
+                    spheres[which_pick + 2].SetActive(true);
+                    spheres[which_pick + 3].SetActive(true);
+                }
+                which_pick += 2;
             }
             else
             {
@@ -242,19 +252,13 @@ public class ObiControl : MonoBehaviour
                     solver.GetComponent<ObiSolver>().enabled = false;
                     actor.GetComponent<ObiCloth>().enabled = false;
                 }
+                else
+                {
+                    ROSConnector.GetComponent<RobotCommandPublisher>().SendCommand(RobotCommandPublisher.PICK_NOT_ON_CLOTH);
+                }
                 sim_number--;                
                 Debug.Log("Could not find particles near the pick location...");
-            }
-            if (!COMPUTER_SIMULATION)
-            {
-                Disable_spheres(which_pick);
-            }
-            if (which_pick == 0)
-            {
-                spheres[which_pick + 2].SetActive(true);
-                spheres[which_pick + 3].SetActive(true);
-            }
-            which_pick += 2;
+            }            
         }
     }
 

@@ -17,6 +17,7 @@ namespace RosSharp.RosBridgeClient
         public const uint STOP_TRIGGER = 2;
         public const uint READY_STATE_TRIGGER = 3;
         public const uint GET_CLOTH_STATE = 10;
+        public const uint PICK_NOT_ON_CLOTH = 11;
 
         protected override void Start()
         {

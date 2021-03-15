@@ -199,6 +199,7 @@ public class VoiceCommands : MonoBehaviour
             point.GetComponent<MeshRenderer>().material.color = Color.blue;
         }
         ROSConnector.GetComponent<PathRequest2>().SendRequest(goal_points);
+        Debug.Log("Simulating!");
 
     }
 
