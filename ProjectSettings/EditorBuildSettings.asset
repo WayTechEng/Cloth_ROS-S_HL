@@ -8,10 +8,10 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/Panda_Scene_square.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/Cloth_Demonstrations.unity
     guid: 491886954a1eb8f45aefaf8316f6ddeb
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Cloth_No_Demonstrations.unity
     guid: 184b75a4bcead534883d3928f23d0ee7
   m_configObjects:

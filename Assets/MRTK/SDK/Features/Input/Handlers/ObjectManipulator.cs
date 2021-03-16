@@ -681,7 +681,7 @@ namespace Microsoft.MixedReality.Toolkit.UI
             {
                 Vector3 pos = new Vector3(targetTransform.Position.x, HostTransform.position.y, targetTransform.Position.z);
                 HostTransform.position = SmoothTo(HostTransform.position, pos, moveLerpTime);
-                HostTransform.rotation = SmoothTo(HostTransform.rotation, targetTransform.Rotation, rotateLerpTime);
+                HostTransform.rotation = new Quaternion(0, 0, 0, 1); // SmoothTo(HostTransform.rotation, targetHostTransformTransform.Rotation, rotateLerpTime);
                 HostTransform.localScale = SmoothTo(HostTransform.localScale, targetTransform.Scale, scaleLerpTime);
             }
             else
