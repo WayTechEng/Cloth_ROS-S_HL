@@ -30,6 +30,7 @@ public class ObiControl : MonoBehaviour
     //public GameObject computer_subscriber;
     public RosSharp.RosBridgeClient.unityComputerPoints computer_subscriber;
     public RosSharp.RosBridgeClient.UnityStateSubscriber unity_state_subscriber;
+    public RosSharp.RosBridgeClient.CommandTracker CommandTracker; 
     public ObiSolver solver;
     private ObiParticlePicker pp;
     private VoiceCommands VC;
@@ -59,6 +60,7 @@ public class ObiControl : MonoBehaviour
         actor = GetComponent<ObiActor>();
         pp = actor.GetComponent<ObiParticlePicker>();
         VC = Speech_obj.GetComponent<VoiceCommands>();
+        CommandTracker = ROSConnector.GetComponent<CommandTracker>();
 
         spheres.Add(pick_1);
         spheres.Add(place_1);
@@ -195,7 +197,8 @@ public class ObiControl : MonoBehaviour
     {
         if(ENABLE_SIMULATION)
         {
-            if(pp.pickedParticleIndexs.Count > 0)
+            CommandTracker.SendCommand(CommandTracker.SIMULATE);
+            if (pp.pickedParticleIndexs.Count > 0)
             {
                 Debug.Log("Already executing a simulation!");
                 return;
@@ -268,6 +271,7 @@ public class ObiControl : MonoBehaviour
         {
             if (pick_place_list.Count == 2)
             {
+                CommandTracker.SendCommand(CommandTracker.FOLD);
                 robotLink0.SetActive(false);
                 hide_the_robot = true;
                 FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(125, 125, 125, 255);
@@ -502,6 +506,7 @@ public class ObiControl : MonoBehaviour
     {
         if (ENABLE_SIMULATION)
         {
+            CommandTracker.SendCommand(CommandTracker.UNDO);
             FOLD_TXT.GetComponent<TextMeshPro>().color = new Color32(125, 125, 125, 255);
             which_pick -= 2;
             if (which_pick < 0)
